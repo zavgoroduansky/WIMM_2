@@ -6,26 +6,25 @@ struct AccountsView: View {
     private var accountGroups: [AccountGroup]
 
     @AppStorage("defaultCurrency") private var defaultCurrencyRaw = CurrencyCode.eur.rawValue
-    @State private var showNewTransaction = false
-    @State private var preselectedAccountID: UUID?
+    @StateObject private var viewModel = AccountsViewModel()
 
     var body: some View {
         NavigationStack {
             List {
-                if accountGroups.isEmpty {
+                if viewModel.orderedGroups.isEmpty {
                     ContentUnavailableView(
                         "No Account Groups",
                         systemImage: "folder",
                         description: Text("Create account groups and accounts in Settings.")
                     )
                 } else {
-                    ForEach(orderedGroups) { accountGroup in
+                    ForEach(viewModel.orderedGroups) { accountGroup in
                         Section {
                             if accountGroup.accounts.isEmpty {
                                 Text("No accounts in this group")
                                     .foregroundStyle(.secondary)
                             } else {
-                                ForEach(orderedAccounts(in: accountGroup)) { account in
+                                ForEach(viewModel.orderedAccounts(in: accountGroup)) { account in
                                     HStack(alignment: .top) {
                                         Label(account.name, systemImage: account.iconName ?? "wallet.pass")
                                         Spacer()
@@ -38,15 +37,15 @@ struct AccountsView: View {
                                     }
                                     .contentShape(Rectangle())
                                     .onTapGesture {
-                                        preselectedAccountID = account.id
-                                        showNewTransaction = true
+                                        viewModel.didTapAccount(account)
                                     }
                                 }
                             }
                         } header: {
                             AccountGroupHeaderView(
                                 accountGroup: accountGroup,
-                                defaultCurrency: CurrencyCode(rawValue: defaultCurrencyRaw) ?? .eur
+                                defaultCurrency: CurrencyCode(rawValue: defaultCurrencyRaw) ?? .eur,
+                                balanceService: AccountGroupBalanceService(rateProvider: FrankfurterRateProvider())
                             )
                         }
                     }
@@ -56,33 +55,26 @@ struct AccountsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("New", systemImage: "plus") {
-                        preselectedAccountID = nil
-                        showNewTransaction = true
+                        viewModel.didTapNew()
                     }
                 }
             }
-            .sheet(isPresented: $showNewTransaction) {
-                NewTransactionView(defaultMode: .expense, preselectedAccountID: preselectedAccountID)
+            .sheet(isPresented: $viewModel.showNewTransaction) {
+                NewTransactionView(defaultMode: .expense, preselectedAccountID: viewModel.preselectedAccountID)
+            }
+            .task(id: accountsSyncKey) {
+                viewModel.update(accountGroups: accountGroups)
             }
         }
     }
 
-    private var orderedGroups: [AccountGroup] {
-        accountGroups.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
+    private var accountsSyncKey: String {
+        accountGroups
+            .map { group in
+                "\(group.id.uuidString):\(group.accounts.count):\(group.sortOrder)"
             }
-            return lhs.sortOrder < rhs.sortOrder
-        }
-    }
-
-    private func orderedAccounts(in group: AccountGroup) -> [Account] {
-        group.accounts.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+            .sorted()
+            .joined(separator: "|")
     }
 }
 
@@ -90,39 +82,28 @@ private struct AccountGroupHeaderView: View {
     let accountGroup: AccountGroup
     let defaultCurrency: CurrencyCode
 
-    @State private var summaryText = "Loading..."
-    private let balanceService = AccountGroupBalanceService(rateProvider: FrankfurterRateProvider())
+    @StateObject private var viewModel: AccountGroupHeaderViewModel
+
+    init(
+        accountGroup: AccountGroup,
+        defaultCurrency: CurrencyCode,
+        balanceService: AccountGroupBalanceServicing
+    ) {
+        self.accountGroup = accountGroup
+        self.defaultCurrency = defaultCurrency
+        _viewModel = StateObject(wrappedValue: AccountGroupHeaderViewModel(balanceService: balanceService))
+    }
 
     var body: some View {
         HStack {
             Text(accountGroup.name)
             Spacer()
-            Text(summaryText)
+            Text(viewModel.summaryText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .task(id: taskID) {
-            let summary = await balanceService.total(for: accountGroup, in: defaultCurrency)
-            var text = Money.format(minor: summary.totalMinor, currency: summary.currency)
-            if !summary.missingAccounts.isEmpty {
-                text += " (partial)"
-            }
-            summaryText = text
+        .task(id: viewModel.taskID(accountGroup: accountGroup, defaultCurrency: defaultCurrency)) {
+            await viewModel.loadSummary(accountGroup: accountGroup, defaultCurrency: defaultCurrency)
         }
-    }
-
-    private var taskID: String {
-        let accountsState = accountGroup.accounts
-            .sorted { $0.id.uuidString < $1.id.uuidString }
-            .map { account in
-                let balances = account.balancesByCurrency
-                    .sorted { $0.currency.rawValue < $1.currency.rawValue }
-                    .map { "\($0.currency.rawValue):\($0.balanceMinor)" }
-                    .joined(separator: ",")
-                return "\(account.id.uuidString)|\(balances)"
-            }
-            .joined(separator: ";")
-
-        return "\(accountGroup.id.uuidString)-\(defaultCurrency.rawValue)-\(accountsState)"
     }
 }

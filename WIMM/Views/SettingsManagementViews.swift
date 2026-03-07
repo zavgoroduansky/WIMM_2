@@ -10,10 +10,12 @@ struct ManageAccountsView: View {
     @State private var renamingGroup: AccountGroup?
     @State private var selectedAccountForCurrencyEdit: Account?
 
+    @StateObject private var viewModel = ManageAccountsViewModel()
+
     var body: some View {
         List {
             Section("Account Group Order") {
-                ForEach(orderedGroups) { group in
+                ForEach(viewModel.orderedGroups) { group in
                     HStack {
                         Text(group.name)
                         Spacer()
@@ -22,8 +24,7 @@ struct ManageAccountsView: View {
                     }
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
-                            modelContext.delete(group)
-                            try? modelContext.save()
+                            viewModel.deleteGroup(group, in: modelContext)
                         }
                     }
                     .swipeActions(edge: .leading) {
@@ -33,12 +34,14 @@ struct ManageAccountsView: View {
                         .tint(.blue)
                     }
                 }
-                .onMove(perform: moveGroups)
+                .onMove { source, destination in
+                    viewModel.moveGroups(from: source, to: destination, in: modelContext)
+                }
             }
 
-            ForEach(orderedGroups) { group in
+            ForEach(viewModel.orderedGroups) { group in
                 Section(group.name) {
-                    ForEach(accounts(in: group)) { account in
+                    ForEach(viewModel.accounts(in: group)) { account in
                         HStack(alignment: .top) {
                             Label(account.name, systemImage: account.iconName ?? "wallet.pass")
                             Spacer()
@@ -51,8 +54,7 @@ struct ManageAccountsView: View {
                         }
                         .swipeActions(edge: .trailing) {
                             Button("Delete", role: .destructive) {
-                                modelContext.delete(account)
-                                try? modelContext.save()
+                                viewModel.deleteAccount(account, in: modelContext)
                             }
                         }
                         .swipeActions(edge: .leading) {
@@ -67,7 +69,7 @@ struct ManageAccountsView: View {
                         }
                     }
                     .onMove { source, destination in
-                        moveAccounts(in: group, source: source, destination: destination)
+                        viewModel.moveAccounts(in: group, source: source, destination: destination, in: modelContext)
                     }
                 }
             }
@@ -84,15 +86,14 @@ struct ManageAccountsView: View {
             }
         }
         .sheet(isPresented: $showAdd) {
-            AddAccountView(accountGroups: orderedGroups)
+            AddAccountView(accountGroups: viewModel.orderedGroups)
         }
         .sheet(item: $renamingAccount) { account in
             RenameEntityView(
                 title: "Rename Account",
                 initialName: account.name
             ) { newName in
-                account.name = newName
-                try? modelContext.save()
+                viewModel.renameAccount(account, to: newName, in: modelContext)
             }
         }
         .sheet(item: $renamingGroup) { group in
@@ -100,53 +101,15 @@ struct ManageAccountsView: View {
                 title: "Rename Account Group",
                 initialName: group.name
             ) { newName in
-                group.name = newName
-                try? modelContext.save()
+                viewModel.renameGroup(group, to: newName, in: modelContext)
             }
         }
         .sheet(item: $selectedAccountForCurrencyEdit) { account in
             EditAccountCurrenciesView(account: account)
         }
-    }
-
-    private var orderedGroups: [AccountGroup] {
-        accountGroups.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
+        .task(id: accountGroupsSyncKey) {
+            viewModel.update(accountGroups: accountGroups)
         }
-    }
-
-    private func accounts(in group: AccountGroup) -> [Account] {
-        group.accounts.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
-    }
-
-    private func moveGroups(from source: IndexSet, to destination: Int) {
-        var mutable = orderedGroups
-        mutable.move(fromOffsets: source, toOffset: destination)
-
-        for (index, group) in mutable.enumerated() {
-            group.sortOrder = index
-        }
-
-        try? modelContext.save()
-    }
-
-    private func moveAccounts(in group: AccountGroup, source: IndexSet, destination: Int) {
-        var mutable = accounts(in: group)
-        mutable.move(fromOffsets: source, toOffset: destination)
-
-        for (index, account) in mutable.enumerated() {
-            account.sortOrder = index
-        }
-
-        try? modelContext.save()
     }
 }
 
@@ -157,9 +120,11 @@ struct ManageCategoriesView: View {
     @State private var showAdd = false
     @State private var renamingCategory: Category?
 
+    @StateObject private var viewModel = ManageCategoriesViewModel()
+
     var body: some View {
         List {
-            ForEach(sortedCategories) { category in
+            ForEach(viewModel.sortedCategories) { category in
                 HStack {
                     Text(category.name)
                     Spacer()
@@ -169,8 +134,7 @@ struct ManageCategoriesView: View {
                 }
                 .swipeActions(edge: .trailing) {
                     Button("Delete", role: .destructive) {
-                        modelContext.delete(category)
-                        try? modelContext.save()
+                        viewModel.deleteCategory(category, in: modelContext)
                     }
                 }
                 .swipeActions(edge: .leading) {
@@ -197,19 +161,19 @@ struct ManageCategoriesView: View {
                 title: "Rename Category",
                 initialName: category.name
             ) { newName in
-                category.name = newName
-                try? modelContext.save()
+                viewModel.renameCategory(category, to: newName, in: modelContext)
             }
+        }
+        .task(id: categoriesSyncKey) {
+            viewModel.update(categories: categories)
         }
     }
 
-    private var sortedCategories: [Category] {
-        categories.sorted { lhs, rhs in
-            if lhs.kind == rhs.kind {
-                return lhs.name < rhs.name
-            }
-            return lhs.kind.rawValue < rhs.kind.rawValue
-        }
+    private var categoriesSyncKey: String {
+        categories
+            .map { "\($0.id.uuidString):\($0.name):\($0.kind.rawValue)" }
+            .sorted()
+            .joined(separator: "|")
     }
 }
 
@@ -219,8 +183,7 @@ private struct EditAccountCurrenciesView: View {
 
     let account: Account
 
-    @State private var selected: Set<CurrencyCode> = []
-    @State private var primary: CurrencyCode = .eur
+    @StateObject private var viewModel = EditAccountCurrenciesViewModel()
 
     var body: some View {
         NavigationStack {
@@ -228,16 +191,9 @@ private struct EditAccountCurrenciesView: View {
                 Section("Enabled Currencies") {
                     ForEach(CurrencyCode.allCases) { currency in
                         Toggle(isOn: Binding(
-                            get: { selected.contains(currency) },
+                            get: { viewModel.selected.contains(currency) },
                             set: { isOn in
-                                if isOn {
-                                    selected.insert(currency)
-                                } else {
-                                    selected.remove(currency)
-                                }
-                                if !selected.contains(primary), let first = selected.first {
-                                    primary = first
-                                }
+                                viewModel.toggleCurrency(currency, isOn: isOn)
                             }
                         )) {
                             Text("\(currency.displayName) (\(currency.symbol))")
@@ -246,8 +202,8 @@ private struct EditAccountCurrenciesView: View {
                 }
 
                 Section("Primary Currency") {
-                    Picker("Primary", selection: $primary) {
-                        ForEach(Array(selected).sorted(by: { $0.rawValue < $1.rawValue })) { currency in
+                    Picker("Primary", selection: $viewModel.primary) {
+                        ForEach(Array(viewModel.selected).sorted(by: { $0.rawValue < $1.rawValue })) { currency in
                             Text("\(currency.displayName) (\(currency.symbol))")
                                 .tag(currency)
                         }
@@ -261,25 +217,26 @@ private struct EditAccountCurrenciesView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let finalSelected = selected.isEmpty ? [primary] : Array(selected)
-                        account.primaryCurrency = primary
-                        account.enabledCurrencies = finalSelected
-                        try? modelContext.save()
+                        viewModel.save(account: account, in: modelContext)
                         dismiss()
                     }
                 }
             }
             .onAppear {
-                selected = Set(account.enabledCurrencies)
-                if selected.isEmpty {
-                    selected.insert(account.primaryCurrency)
-                }
-                primary = account.primaryCurrency
-                if !selected.contains(primary) {
-                    selected.insert(primary)
-                }
+                viewModel.applyInitialState(from: account)
             }
         }
+    }
+}
+
+private extension ManageAccountsView {
+    var accountGroupsSyncKey: String {
+        accountGroups
+            .map { group in
+                "\(group.id.uuidString):\(group.sortOrder):\(group.accounts.count)"
+            }
+            .sorted()
+            .joined(separator: "|")
     }
 }
 
@@ -287,22 +244,20 @@ private struct RenameEntityView: View {
     @Environment(\.dismiss) private var dismiss
 
     let title: String
-    let initialName: String
     let onSave: (String) -> Void
 
-    @State private var name: String
+    @StateObject private var viewModel: RenameEntityViewModel
 
     init(title: String, initialName: String, onSave: @escaping (String) -> Void) {
         self.title = title
-        self.initialName = initialName
         self.onSave = onSave
-        _name = State(initialValue: initialName)
+        _viewModel = StateObject(wrappedValue: RenameEntityViewModel(initialName: initialName))
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Name", text: $name)
+                TextField("Name", text: $viewModel.name)
             }
             .navigationTitle(title)
             .toolbar {
@@ -311,12 +266,10 @@ private struct RenameEntityView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !trimmed.isEmpty else { return }
-                        onSave(trimmed)
+                        onSave(viewModel.trimmedName)
                         dismiss()
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!viewModel.canSave)
                 }
             }
         }

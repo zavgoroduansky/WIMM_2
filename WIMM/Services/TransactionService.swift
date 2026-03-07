@@ -21,8 +21,44 @@ enum TransactionServiceError: LocalizedError {
     }
 }
 
-enum TransactionService {
-    static func createIncome(
+protocol TransactionServicing {
+    func createIncome(
+        amountMinor: Int64,
+        account: Account,
+        currency: CurrencyCode,
+        category: Category?,
+        date: Date,
+        note: String?,
+        in modelContext: ModelContext
+    ) throws
+
+    func createExpense(
+        amountMinor: Int64,
+        account: Account,
+        currency: CurrencyCode,
+        category: Category?,
+        date: Date,
+        note: String?,
+        in modelContext: ModelContext
+    ) throws
+
+    func createTransfer(
+        fromAccount: Account,
+        toAccount: Account,
+        fromCurrency: CurrencyCode,
+        toCurrency: CurrencyCode,
+        amountFromMinor: Int64,
+        amountToMinor: Int64?,
+        date: Date,
+        note: String?,
+        in modelContext: ModelContext
+    ) throws
+
+    func validateTransaction(_ transaction: Transaction) throws
+}
+
+final class TransactionService: TransactionServicing {
+    func createIncome(
         amountMinor: Int64,
         account: Account,
         currency: CurrencyCode,
@@ -47,7 +83,7 @@ enum TransactionService {
         try modelContext.save()
     }
 
-    static func createExpense(
+    func createExpense(
         amountMinor: Int64,
         account: Account,
         currency: CurrencyCode,
@@ -72,7 +108,7 @@ enum TransactionService {
         try modelContext.save()
     }
 
-    static func createTransfer(
+    func createTransfer(
         fromAccount: Account,
         toAccount: Account,
         fromCurrency: CurrencyCode,
@@ -127,20 +163,20 @@ enum TransactionService {
         try modelContext.save()
     }
 
-    static func validateTransaction(_ transaction: Transaction) throws {
+    func validateTransaction(_ transaction: Transaction) throws {
         try validateAmount(transaction.amountMinor)
         guard transaction.account.supports(currency: transaction.currency) else {
             throw TransactionServiceError.currencyNotEnabledForAccount
         }
     }
 
-    private static func validateAmount(_ amount: Int64) throws {
+    private func validateAmount(_ amount: Int64) throws {
         guard amount > 0 else {
             throw TransactionServiceError.invalidAmount
         }
     }
 
-    private static func validateAccountCurrency(account: Account, currency: CurrencyCode) throws {
+    private func validateAccountCurrency(account: Account, currency: CurrencyCode) throws {
         guard account.supports(currency: currency) else {
             throw TransactionServiceError.currencyNotEnabledForAccount
         }

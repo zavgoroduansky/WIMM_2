@@ -160,8 +160,22 @@ struct AccountGroupBalanceSummary {
     let missingAccounts: [Account]
 }
 
-struct AccountGroupBalanceService {
-    let rateProvider: ExchangeRateProvider
+@MainActor
+protocol AccountGroupBalanceServicing {
+    func total(
+        for accountGroup: AccountGroup,
+        in defaultCurrency: CurrencyCode,
+        date: Date?
+    ) async -> AccountGroupBalanceSummary
+}
+
+@MainActor
+final class AccountGroupBalanceService: AccountGroupBalanceServicing {
+    private let rateProvider: ExchangeRateProvider
+
+    init(rateProvider: ExchangeRateProvider) {
+        self.rateProvider = rateProvider
+    }
 
     func total(
         for accountGroup: AccountGroup,
