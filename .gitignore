@@ -1,0 +1,66 @@
+# Xcode
+#
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xcuserstate
+
+# Xcode workspace
+*.xcworkspace
+
+# Swift Package Manager
+.build/
+Packages/
+# Package.resolved
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.swp
+*.tmp
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Test output
+*.xccovreport
+*.xccovarchive
+
+# Archives
+*.xcarchive
+
+# SwiftPM artifacts
+.swiftpm
+
+# Tuist
+Tuist/Derived
+Tuist/.build
