@@ -1,28 +1,27 @@
 import Foundation
 import Combine
-import SwiftData
 
 @MainActor
 final class AddCategoryViewModel: ObservableObject {
     @Published var name = ""
     @Published var kind: CategoryKind = .expense
+    @Published var colorHex: String = CategoryColorPalette.defaultHex
 
     var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     @discardableResult
-    func save(in modelContext: ModelContext) -> Bool {
+    func save(using repository: FinanceRepositorying) -> Bool {
         guard canSave else { return false }
 
-        let category = Category(
+        _ = repository.createCategory(
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            kind: kind
+            kind: kind,
+            colorHex: colorHex
         )
-
-        modelContext.insert(category)
         do {
-            try modelContext.save()
+            try repository.save()
             return true
         } catch {
             return false

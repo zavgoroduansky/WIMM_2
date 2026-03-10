@@ -20,6 +20,7 @@ struct AddAccountViewModelTests {
     @Test
     func saveCreatesAccountInSelectedGroup() throws {
         let context = try TestDataFactory.makeInMemoryContext()
+        let repository = SwiftDataFinanceRepository(modelContext: context)
         let group = TestDataFactory.makeAccountGroup(name: "Main")
 
         let vm = AddAccountViewModel()
@@ -27,9 +28,39 @@ struct AddAccountViewModelTests {
         vm.name = "Wallet"
         vm.selectedAccountGroupID = group.id
 
-        let success = vm.save(in: context)
+        let success = vm.save(using: repository)
 
         #expect(success)
         #expect(group.accounts.contains(where: { $0.name == "Wallet" }))
+    }
+
+    @Test
+    func saveCreatesNewGroupWhenRequested() {
+        let repo = MockFinanceRepository()
+        let vm = AddAccountViewModel()
+        vm.update(accountGroups: [], defaultCurrencyRaw: CurrencyCode.eur.rawValue)
+
+        vm.groupMode = .new
+        vm.newGroupName = "Cash"
+        vm.name = "Wallet"
+
+        let success = vm.save(using: repo)
+
+        #expect(success)
+        #expect(repo.accountGroups.contains(where: { $0.name == "Cash" }))
+        let createdGroup = repo.accountGroups.first { $0.name == "Cash" }
+        #expect(createdGroup?.accounts.contains(where: { $0.name == "Wallet" }) == true)
+    }
+
+    @Test
+    func toggleCurrencyMovesPrimaryWhenRemoved() {
+        let vm = AddAccountViewModel()
+        vm.selectedCurrencies = [.eur, .usd]
+        vm.primaryCurrency = .eur
+
+        vm.toggleCurrency(.eur, isOn: false)
+
+        #expect(vm.selectedCurrencies.contains(.usd))
+        #expect(vm.primaryCurrency == .usd)
     }
 }

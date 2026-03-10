@@ -1,6 +1,5 @@
 import Foundation
 import Combine
-import SwiftData
 
 @MainActor
 final class AddAccountViewModel: ObservableObject {
@@ -43,6 +42,11 @@ final class AddAccountViewModel: ObservableObject {
         }
     }
 
+    func load(using repository: FinanceRepositorying, defaultCurrencyRaw: String) {
+        let groups = (try? repository.fetchAccountGroups()) ?? []
+        update(accountGroups: groups, defaultCurrencyRaw: defaultCurrencyRaw)
+    }
+
     var orderedGroups: [AccountGroup] {
         accountGroups.sorted { lhs, rhs in
             if lhs.sortOrder == rhs.sortOrder {
@@ -80,7 +84,7 @@ final class AddAccountViewModel: ObservableObject {
     }
 
     @discardableResult
-    func save(in modelContext: ModelContext) -> Bool {
+    func save(using repository: FinanceRepositorying) -> Bool {
         guard canSave else { return false }
 
         let accountGroup: AccountGroup
@@ -88,8 +92,7 @@ final class AddAccountViewModel: ObservableObject {
             let trimmedGroupName = newGroupName.trimmed
             guard !trimmedGroupName.isEmpty else { return false }
             let maxGroupOrder = accountGroups.map(\.sortOrder).max() ?? -1
-            let createdGroup = AccountGroup(name: trimmedGroupName, sortOrder: maxGroupOrder + 1)
-            modelContext.insert(createdGroup)
+            let createdGroup = repository.createAccountGroup(name: trimmedGroupName, sortOrder: maxGroupOrder + 1)
             accountGroup = createdGroup
         } else {
             guard let selected = selectedAccountGroup else { return false }
@@ -97,19 +100,17 @@ final class AddAccountViewModel: ObservableObject {
         }
 
         let maxOrderInGroup = accountGroup.accounts.map(\.sortOrder).max() ?? -1
-        let account = Account(
+        _ = repository.createAccount(
             name: name.trimmed,
             primaryCurrency: primaryCurrency,
             enabledCurrencies: Array(selectedCurrencies),
-            openingBalanceMinor: 0,
             iconName: iconName,
             sortOrder: maxOrderInGroup + 1,
             accountGroup: accountGroup
         )
-        modelContext.insert(account)
 
         do {
-            try modelContext.save()
+            try repository.save()
             return true
         } catch {
             return false

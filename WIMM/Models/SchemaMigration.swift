@@ -16,14 +16,23 @@ enum WIMMSchemaV2: VersionedSchema {
     }
 }
 
+enum WIMMSchemaV3: VersionedSchema {
+    static var versionIdentifier: Schema.Version = .init(3, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        [AccountGroup.self, Account.self, Category.self, Transaction.self]
+    }
+}
+
 enum WIMMMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [WIMMSchemaV1.self, WIMMSchemaV2.self]
+        [WIMMSchemaV1.self, WIMMSchemaV2.self, WIMMSchemaV3.self]
     }
 
     static var stages: [MigrationStage] {
         [
-            .lightweight(fromVersion: WIMMSchemaV1.self, toVersion: WIMMSchemaV2.self)
+            .lightweight(fromVersion: WIMMSchemaV1.self, toVersion: WIMMSchemaV2.self),
+            .lightweight(fromVersion: WIMMSchemaV2.self, toVersion: WIMMSchemaV3.self)
         ]
     }
 }

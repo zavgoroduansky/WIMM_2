@@ -5,14 +5,17 @@ import Combine
 final class CategoriesViewModel: ObservableObject {
     @Published var showNewTransaction = false
     @Published var preselectedCategoryID: UUID?
+    @Published private(set) var categories: [Category] = []
 
-    private(set) var categories: [Category] = []
-
-    func update(categories: [Category]) {
-        self.categories = categories
+    func load(using repository: FinanceRepositorying) {
+        categories = (try? repository.fetchCategories()) ?? []
     }
 
     var expenseCategories: [Category] {
+        expenseCategories(from: categories)
+    }
+
+    func expenseCategories(from categories: [Category]) -> [Category] {
         categories.filter { $0.kind == .expense }
     }
 

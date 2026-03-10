@@ -4,17 +4,18 @@ import SwiftData
 @main
 struct WIMMApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema(versionedSchema: WIMMSchemaV2.self)
         let localConfiguration = ModelConfiguration(isStoredInMemoryOnly: false)
 
         do {
             return try ModelContainer(
-                for: schema,
-                migrationPlan: WIMMMigrationPlan.self,
-                configurations: [localConfiguration]
+                for: AccountGroup.self,
+                Account.self,
+                Category.self,
+                Transaction.self,
+                configurations: localConfiguration
             )
         } catch {
-            fatalError("Could not create local ModelContainer with migration plan: \(error)")
+            fatalError("Could not create local ModelContainer: \(error)")
         }
     }()
 

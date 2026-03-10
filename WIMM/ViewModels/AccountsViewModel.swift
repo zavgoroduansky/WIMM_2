@@ -5,14 +5,22 @@ import Combine
 final class AccountsViewModel: ObservableObject {
     @Published var showNewTransaction = false
     @Published var preselectedAccountID: UUID?
+    @Published private(set) var accountGroups: [AccountGroup] = []
+    private let repository: FinanceRepositorying
 
-    private(set) var accountGroups: [AccountGroup] = []
+    init(repository: FinanceRepositorying) {
+        self.repository = repository
+    }
 
-    func update(accountGroups: [AccountGroup]) {
-        self.accountGroups = accountGroups
+    func load() {
+        accountGroups = (try? repository.fetchAccountGroups()) ?? []
     }
 
     var orderedGroups: [AccountGroup] {
+        orderedGroups(from: accountGroups)
+    }
+
+    func orderedGroups(from accountGroups: [AccountGroup]) -> [AccountGroup] {
         accountGroups.sorted { lhs, rhs in
             if lhs.sortOrder == rhs.sortOrder {
                 return lhs.name < rhs.name
@@ -38,40 +46,5 @@ final class AccountsViewModel: ObservableObject {
     func didTapNew() {
         preselectedAccountID = nil
         showNewTransaction = true
-    }
-}
-
-@MainActor
-final class AccountGroupHeaderViewModel: ObservableObject {
-    @Published private(set) var summaryText = "Loading..."
-
-    private let balanceService: AccountGroupBalanceServicing
-
-    init(balanceService: AccountGroupBalanceServicing) {
-        self.balanceService = balanceService
-    }
-
-    func loadSummary(accountGroup: AccountGroup, defaultCurrency: CurrencyCode) async {
-        let summary = await balanceService.total(for: accountGroup, in: defaultCurrency, date: nil)
-        var text = Money.format(minor: summary.totalMinor, currency: summary.currency)
-        if !summary.missingAccounts.isEmpty {
-            text += " (partial)"
-        }
-        summaryText = text
-    }
-
-    func taskID(accountGroup: AccountGroup, defaultCurrency: CurrencyCode) -> String {
-        let accountsState = accountGroup.accounts
-            .sorted { $0.id.uuidString < $1.id.uuidString }
-            .map { account in
-                let balances = account.balancesByCurrency
-                    .sorted { $0.currency.rawValue < $1.currency.rawValue }
-                    .map { "\($0.currency.rawValue):\($0.balanceMinor)" }
-                    .joined(separator: ",")
-                return "\(account.id.uuidString)|\(balances)"
-            }
-            .joined(separator: ";")
-
-        return "\(accountGroup.id.uuidString)-\(defaultCurrency.rawValue)-\(accountsState)"
     }
 }

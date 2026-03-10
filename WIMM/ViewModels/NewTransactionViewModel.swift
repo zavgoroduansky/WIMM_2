@@ -140,6 +140,12 @@ final class NewTransactionViewModel: ObservableObject {
         applyDefaultsAndSync()
     }
 
+    func loadData(defaultCurrency: CurrencyCode, using repository: FinanceRepositorying) {
+        let groups = (try? repository.fetchAccountGroups()) ?? []
+        let categories = (try? repository.fetchCategories()) ?? []
+        updateData(accountGroups: groups, categories: categories, defaultCurrency: defaultCurrency)
+    }
+
     func handleModeChange() {
         applyDefaultsAndSync()
     }
@@ -220,6 +226,72 @@ final class NewTransactionViewModel: ObservableObject {
                     date: date,
                     note: note.nilIfEmptyTrimmed,
                     in: modelContext
+                )
+            }
+
+            errorText = nil
+            return true
+        } catch {
+            errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func save(using repository: FinanceRepositorying) -> Bool {
+        do {
+            switch mode {
+            case .income:
+                guard let amountMinor = Money.minor(fromInput: amount),
+                      let account = selectedAccount else {
+                    throw TransactionServiceError.invalidAmount
+                }
+
+                try repository.createIncome(
+                    amountMinor: amountMinor,
+                    account: account,
+                    currency: transactionCurrency,
+                    category: selectedCategory,
+                    date: date,
+                    note: note.nilIfEmptyTrimmed
+                )
+            case .expense:
+                guard let amountMinor = Money.minor(fromInput: amount),
+                      let account = selectedAccount else {
+                    throw TransactionServiceError.invalidAmount
+                }
+
+                try repository.createExpense(
+                    amountMinor: amountMinor,
+                    account: account,
+                    currency: transactionCurrency,
+                    category: selectedCategory,
+                    date: date,
+                    note: note.nilIfEmptyTrimmed
+                )
+            case .transfer:
+                guard let fromAmountMinor = Money.minor(fromInput: amount),
+                      let fromAccount,
+                      let toAccount else {
+                    throw TransactionServiceError.invalidAmount
+                }
+
+                let toAmountMinor: Int64?
+                if usesManualAmountTo {
+                    toAmountMinor = Money.minor(fromInput: amountTo)
+                } else {
+                    toAmountMinor = nil
+                }
+
+                try repository.createTransfer(
+                    fromAccount: fromAccount,
+                    toAccount: toAccount,
+                    fromCurrency: transferFromCurrency,
+                    toCurrency: transferToCurrency,
+                    amountFromMinor: fromAmountMinor,
+                    amountToMinor: toAmountMinor,
+                    date: date,
+                    note: note.nilIfEmptyTrimmed
                 )
             }
 

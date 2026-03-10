@@ -2,29 +2,32 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    @StateObject private var dependencies = AppDependencies()
+
     var body: some View {
         TabView {
-            AccountsView()
+            AccountsScene(modelContext: modelContext, dependencies: dependencies)
                 .tabItem {
                     Label("Accounts", systemImage: "wallet.pass")
                 }
 
-            CategoriesView()
+            CategoriesScene(modelContext: modelContext, dependencies: dependencies)
                 .tabItem {
                     Label("Categories", systemImage: "list.bullet")
                 }
 
-            HistoryView()
+            HistoryScene(modelContext: modelContext, dependencies: dependencies)
                 .tabItem {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
 
-            ReportsView()
+            ReportsScene(modelContext: modelContext, dependencies: dependencies)
                 .tabItem {
                     Label("Reports", systemImage: "chart.bar")
                 }
 
-            SettingsView()
+            SettingsScene(modelContext: modelContext, dependencies: dependencies)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }

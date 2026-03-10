@@ -2,10 +2,9 @@ import SwiftUI
 import SwiftData
 
 struct HistoryView: View {
-    @Query(sort: [SortDescriptor(\Transaction.date, order: .reverse)])
-    private var transactions: [Transaction]
-
-    @StateObject private var viewModel = HistoryViewModel()
+    @ObservedObject var viewModel: HistoryViewModel
+    let makeRepository: () -> FinanceRepositorying
+    let makeNewTransactionView: (_ defaultMode: NewTransactionViewModel.TransactionMode, _ preselectedAccountID: UUID?, _ preselectedCategoryID: UUID?) -> AnyView
 
     var body: some View {
         NavigationStack {
@@ -29,6 +28,11 @@ struct HistoryView: View {
                     Text(entry.amountText)
                         .foregroundStyle(color(for: entry.tone))
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button("Delete", role: .destructive) {
+                        viewModel.delete(entry: entry, using: makeRepository())
+                    }
+                }
             }
             .navigationTitle("History")
             .toolbar {
@@ -39,10 +43,13 @@ struct HistoryView: View {
                 }
             }
             .sheet(isPresented: $viewModel.showNewTransaction) {
-                NewTransactionView(defaultMode: .expense)
+                makeNewTransactionView(.expense, nil, nil)
             }
-            .task(id: transactionsSyncKey) {
-                viewModel.update(transactions: transactions)
+            .onAppear(perform: load)
+            .onChange(of: viewModel.showNewTransaction) { _, isPresented in
+                if !isPresented {
+                    load()
+                }
             }
         }
     }
@@ -55,9 +62,20 @@ struct HistoryView: View {
         }
     }
 
-    private var transactionsSyncKey: String {
-        transactions
-            .map { "\($0.id.uuidString):\($0.date.timeIntervalSince1970)" }
-            .joined(separator: "|")
+    private func load() {
+        viewModel.load(using: makeRepository())
     }
+}
+
+#Preview {
+    let context = PreviewSupport.makeContext()
+    let repository = PreviewSupport.makeRepository(context: context)
+    let viewModel = HistoryViewModel()
+    viewModel.load(using: repository)
+
+    return HistoryView(
+        viewModel: viewModel,
+        makeRepository: { repository },
+        makeNewTransactionView: { _, _, _ in AnyView(EmptyView()) }
+    )
 }

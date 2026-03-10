@@ -16,17 +16,22 @@ final class HistoryViewModel: ObservableObject {
         let tone: EntryTone
         let date: Date
         let note: String?
+        let transactionID: UUID?
+        let transferGroupID: UUID?
     }
 
     @Published var showNewTransaction = false
+    @Published private(set) var transactions: [Transaction] = []
 
-    private(set) var transactions: [Transaction] = []
-
-    func update(transactions: [Transaction]) {
-        self.transactions = transactions
+    func load(using repository: FinanceRepositorying) {
+        transactions = (try? repository.fetchTransactions()) ?? []
     }
 
     var entries: [Entry] {
+        entries(from: transactions)
+    }
+
+    func entries(from transactions: [Transaction]) -> [Entry] {
         var result: [Entry] = []
         var handledTransfers: Set<UUID> = []
         let transferGroups = Dictionary(grouping: transactions.filter { $0.transferGroupId != nil }) {
@@ -54,7 +59,9 @@ final class HistoryViewModel: ObservableObject {
                         amountText: amountText,
                         tone: .transfer,
                         date: max(expense.date, income.date),
-                        note: expense.note ?? income.note
+                        note: expense.note ?? income.note,
+                        transactionID: nil,
+                        transferGroupID: groupID
                     )
                 )
             } else {
@@ -66,7 +73,9 @@ final class HistoryViewModel: ObservableObject {
                         amountText: Money.format(minor: tx.amountMinor, currency: tx.currency),
                         tone: tx.kind == .income ? .income : .expense,
                         date: tx.date,
-                        note: tx.note
+                        note: tx.note,
+                        transactionID: tx.id,
+                        transferGroupID: nil
                     )
                 )
             }
@@ -77,5 +86,21 @@ final class HistoryViewModel: ObservableObject {
 
     func didTapNew() {
         showNewTransaction = true
+    }
+
+    func delete(entry: Entry, using repository: FinanceRepositorying) {
+        if let transferGroupID = entry.transferGroupID {
+            transactions
+                .filter { $0.transferGroupId == transferGroupID }
+                .forEach { repository.delete($0) }
+        } else if let transactionID = entry.transactionID,
+                  let transaction = transactions.first(where: { $0.id == transactionID }) {
+            repository.delete(transaction)
+        } else {
+            return
+        }
+
+        try? repository.save()
+        load(using: repository)
     }
 }

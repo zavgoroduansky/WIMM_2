@@ -2,7 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("defaultCurrency") private var defaultCurrencyRaw = CurrencyCode.eur.rawValue
-    @StateObject private var viewModel = SettingsViewModel()
+    @ObservedObject var viewModel: SettingsViewModel
+    let makeManageAccountsView: () -> AnyView
+    let makeManageCategoriesView: () -> AnyView
 
     var body: some View {
         NavigationStack {
@@ -18,14 +20,23 @@ struct SettingsView: View {
 
                 Section("Data") {
                     NavigationLink("Accounts") {
-                        ManageAccountsView()
+                        makeManageAccountsView()
                     }
                     NavigationLink("Categories") {
-                        ManageCategoriesView()
+                        makeManageCategoriesView()
                     }
                 }
             }
             .navigationTitle("Settings")
         }
     }
+}
+
+#Preview {
+    let viewModel = SettingsViewModel()
+    return SettingsView(
+        viewModel: viewModel,
+        makeManageAccountsView: { AnyView(EmptyView()) },
+        makeManageCategoriesView: { AnyView(EmptyView()) }
+    )
 }

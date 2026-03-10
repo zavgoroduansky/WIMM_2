@@ -10,9 +10,8 @@ struct CategoriesViewModelTests {
         let income = TestDataFactory.makeCategory(name: "Salary", kind: .income)
 
         let vm = CategoriesViewModel()
-        vm.update(categories: [expense, income])
 
-        #expect(vm.expenseCategories.map(\.name) == ["Food"])
+        #expect(vm.expenseCategories(from: [expense, income]).map(\.name) == ["Food"])
     }
 
     @Test
@@ -30,5 +29,27 @@ struct CategoriesViewModelTests {
         let text = vm.expenseForCurrentMonth(category)
 
         #expect(text.contains("€15.00"))
+    }
+
+    @Test
+    func tapCategoryOpensTransactionWithPreselectedCategory() {
+        let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
+        let vm = CategoriesViewModel()
+
+        vm.didTapCategory(category)
+
+        #expect(vm.showNewTransaction)
+        #expect(vm.preselectedCategoryID == category.id)
+    }
+
+    @Test
+    func tapNewClearsPreselectedCategory() {
+        let vm = CategoriesViewModel()
+        vm.preselectedCategoryID = UUID()
+
+        vm.didTapNew()
+
+        #expect(vm.showNewTransaction)
+        #expect(vm.preselectedCategoryID == nil)
     }
 }

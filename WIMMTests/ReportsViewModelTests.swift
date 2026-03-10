@@ -83,4 +83,68 @@ struct ReportsViewModelTests {
         #expect(viewModel.items.first?.totalMinor == 200)
         #expect(viewModel.missingCount == 0)
     }
+
+    @Test
+    func loadReportTracksMissingRates() async {
+        let calendar = Calendar.current
+        let selectedDate = Date()
+        let selectedMonthStart = calendar.dateInterval(of: .month, for: selectedDate)?.start ?? selectedDate
+
+        let group = TestDataFactory.makeAccountGroup(name: "Main")
+        let account = TestDataFactory.makeAccount(name: "Wallet", primaryCurrency: .uah, accountGroup: group)
+        let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
+        let expense = Transaction(
+            kind: .expense,
+            amountMinor: 10_000,
+            currency: .uah,
+            date: selectedDate,
+            account: account,
+            category: category
+        )
+
+        let rateProvider = MockRateProvider(rates: [:])
+        let viewModel = ReportsViewModel(rateProvider: rateProvider)
+        viewModel.selectedMonthStart = selectedMonthStart
+
+        await viewModel.loadReport(
+            transactions: [expense],
+            defaultCurrency: .eur,
+            calendar: calendar
+        )
+
+        #expect(viewModel.totalExpenseMinor == 0)
+        #expect(viewModel.missingCount == 1)
+    }
+
+    @Test
+    func loadReportUsesCategoryColor() async {
+        let calendar = Calendar.current
+        let selectedDate = Date()
+        let selectedMonthStart = calendar.dateInterval(of: .month, for: selectedDate)?.start ?? selectedDate
+
+        let group = TestDataFactory.makeAccountGroup(name: "Main")
+        let account = TestDataFactory.makeAccount(name: "Wallet", primaryCurrency: .eur, accountGroup: group)
+        let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
+        category.colorHex = "#FF0000"
+
+        let expense = Transaction(
+            kind: .expense,
+            amountMinor: 1_000,
+            currency: .eur,
+            date: selectedDate,
+            account: account,
+            category: category
+        )
+
+        let viewModel = ReportsViewModel(rateProvider: MockRateProvider())
+        viewModel.selectedMonthStart = selectedMonthStart
+
+        await viewModel.loadReport(
+            transactions: [expense],
+            defaultCurrency: .eur,
+            calendar: calendar
+        )
+
+        #expect(viewModel.items.first?.colorHex == "#FF0000")
+    }
 }
