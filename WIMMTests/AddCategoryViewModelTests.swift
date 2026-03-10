@@ -6,23 +6,23 @@ struct AddCategoryViewModelTests {
     @Test
     func saveRequiresNonEmptyName() {
         let repo = MockFinanceRepository()
-        let vm = AddCategoryViewModel()
+        let vm = AddCategoryViewModel(repository: repo)
 
-        #expect(!vm.save(using: repo))
+        #expect(!vm.save())
 
         vm.name = "Food"
-        #expect(vm.save(using: repo))
+        #expect(vm.save())
     }
 
     @Test
     func savePersistsKindAndColor() {
         let repo = MockFinanceRepository()
-        let vm = AddCategoryViewModel()
+        let vm = AddCategoryViewModel(repository: repo)
         vm.name = "Salary"
         vm.kind = .income
         vm.colorHex = "#123456"
 
-        let success = vm.save(using: repo)
+        let success = vm.save()
 
         #expect(success)
         #expect(repo.categories.first?.name == "Salary")

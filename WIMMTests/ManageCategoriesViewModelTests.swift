@@ -9,7 +9,7 @@ struct ManageCategoriesViewModelTests {
         let expenseA = TestDataFactory.makeCategory(name: "A", kind: .expense)
         let expenseB = TestDataFactory.makeCategory(name: "B", kind: .expense)
 
-        let vm = ManageCategoriesViewModel()
+        let vm = ManageCategoriesViewModel(repository: MockFinanceRepository())
         let sorted = vm.sortedCategories(from: [income, expenseB, expenseA], kind: .expense)
 
         #expect(sorted.map(\.name) == ["A", "B"])
@@ -26,8 +26,8 @@ struct ManageCategoriesViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [category], transactions: [tx])
 
-        let vm = ManageCategoriesViewModel()
-        vm.load(using: repo)
+        let vm = ManageCategoriesViewModel(repository: repo)
+        vm.load()
 
         #expect(!vm.canDeleteCategory(category))
         #expect(vm.deleteCategoryBlockedReason(category) != nil)
@@ -43,15 +43,14 @@ struct ManageCategoriesViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [category], transactions: [tx])
 
-        let vm = ManageCategoriesViewModel()
-        vm.load(using: repo)
+        let vm = ManageCategoriesViewModel(repository: repo)
+        vm.load()
 
         vm.updateCategory(
             category,
             name: "New Food",
             kind: .income,
-            colorHex: "#FFFFFF",
-            using: repo
+            colorHex: "#FFFFFF"
         )
 
         #expect(category.name == "New Food")

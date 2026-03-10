@@ -52,11 +52,14 @@ struct TransferFieldsView: View {
 }
 
 #Preview {
+    let context = PreviewSupport.makeContext()
+    let repository = PreviewSupport.makeRepository(context: context)
     let viewModel = NewTransactionViewModel(
         defaultMode: .transfer,
         preselectedAccountID: nil,
         preselectedCategoryID: nil,
-        transactionService: TransactionService()
+        repository: repository
     )
+    viewModel.loadData(defaultCurrency: .eur)
     return TransferFieldsView(viewModel: viewModel)
 }

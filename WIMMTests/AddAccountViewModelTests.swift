@@ -6,7 +6,7 @@ struct AddAccountViewModelTests {
     @Test
     func canSaveRequiresNameAndGroupAndCurrency() {
         let group = TestDataFactory.makeAccountGroup(name: "Main")
-        let vm = AddAccountViewModel()
+        let vm = AddAccountViewModel(repository: MockFinanceRepository())
         vm.update(accountGroups: [group], defaultCurrencyRaw: CurrencyCode.eur.rawValue)
 
         #expect(!vm.canSave)
@@ -23,12 +23,12 @@ struct AddAccountViewModelTests {
         let repository = SwiftDataFinanceRepository(modelContext: context)
         let group = TestDataFactory.makeAccountGroup(name: "Main")
 
-        let vm = AddAccountViewModel()
+        let vm = AddAccountViewModel(repository: repository)
         vm.update(accountGroups: [group], defaultCurrencyRaw: CurrencyCode.eur.rawValue)
         vm.name = "Wallet"
         vm.selectedAccountGroupID = group.id
 
-        let success = vm.save(using: repository)
+        let success = vm.save()
 
         #expect(success)
         #expect(group.accounts.contains(where: { $0.name == "Wallet" }))
@@ -37,14 +37,14 @@ struct AddAccountViewModelTests {
     @Test
     func saveCreatesNewGroupWhenRequested() {
         let repo = MockFinanceRepository()
-        let vm = AddAccountViewModel()
+        let vm = AddAccountViewModel(repository: repo)
         vm.update(accountGroups: [], defaultCurrencyRaw: CurrencyCode.eur.rawValue)
 
         vm.groupMode = .new
         vm.newGroupName = "Cash"
         vm.name = "Wallet"
 
-        let success = vm.save(using: repo)
+        let success = vm.save()
 
         #expect(success)
         #expect(repo.accountGroups.contains(where: { $0.name == "Cash" }))
@@ -54,7 +54,7 @@ struct AddAccountViewModelTests {
 
     @Test
     func toggleCurrencyMovesPrimaryWhenRemoved() {
-        let vm = AddAccountViewModel()
+        let vm = AddAccountViewModel(repository: MockFinanceRepository())
         vm.selectedCurrencies = [.eur, .usd]
         vm.primaryCurrency = .eur
 

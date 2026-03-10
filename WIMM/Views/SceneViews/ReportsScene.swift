@@ -2,21 +2,21 @@ import SwiftUI
 import SwiftData
 
 struct ReportsScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
 
-    @StateObject private var viewModel: ReportsViewModel
+    @ObservedObject private var viewModel: ReportsViewModel
 
-    init(modelContext: ModelContext, dependencies: AppDependencies) {
-        self.modelContext = modelContext
+    init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _viewModel = StateObject(wrappedValue: dependencies.makeReportsViewModel())
+        guard let viewModel = dependencies.reportsViewModel else {
+            fatalError("AppDependencies not configured.")
+        }
+        _viewModel = ObservedObject(wrappedValue: viewModel)
     }
 
     var body: some View {
         ReportsView(
-            viewModel: viewModel,
-            makeRepository: { dependencies.makeFinanceRepository(modelContext: modelContext) }
+            viewModel: viewModel
         )
     }
 }
@@ -24,5 +24,6 @@ struct ReportsScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return ReportsScene(modelContext: context, dependencies: dependencies)
+    dependencies.configure(modelContext: context)
+    return ReportsScene(dependencies: dependencies)
 }

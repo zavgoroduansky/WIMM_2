@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Change Guard"
+  short_description: "Guardrails for all code changes."
+  default_prompt: "Apply the mandatory code-change process: clarify requirements if underspecified; follow SOLID/DI and layer separation; keep Views small; update docs/tests/previews; run unit tests; explain what and why."

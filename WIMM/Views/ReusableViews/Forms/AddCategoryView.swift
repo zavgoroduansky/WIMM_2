@@ -1,11 +1,8 @@
 import SwiftUI
-import SwiftData
-
 struct AddCategoryView: View {
     @Environment(\.dismiss) private var dismiss
 
     @ObservedObject var viewModel: AddCategoryViewModel
-    let makeRepository: () -> FinanceRepositorying
     @State private var showColorPicker = false
 
     var body: some View {
@@ -36,7 +33,7 @@ struct AddCategoryView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        if viewModel.save(using: makeRepository()) {
+                        if viewModel.save() {
                             dismiss()
                         }
                     }
@@ -53,10 +50,9 @@ struct AddCategoryView: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = AddCategoryViewModel()
+    let viewModel = AddCategoryViewModel(repository: repository)
 
     return AddCategoryView(
-        viewModel: viewModel,
-        makeRepository: { repository }
+        viewModel: viewModel
     )
 }

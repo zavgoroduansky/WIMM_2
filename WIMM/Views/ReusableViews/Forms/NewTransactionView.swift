@@ -1,13 +1,10 @@
 import SwiftUI
-import SwiftData
-
 struct NewTransactionView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage("defaultCurrency") private var defaultCurrencyRaw = CurrencyCode.eur.rawValue
 
     @ObservedObject var viewModel: NewTransactionViewModel
-    let makeRepository: () -> FinanceRepositorying
 
     var body: some View {
         NavigationStack {
@@ -62,15 +59,14 @@ struct NewTransactionView: View {
     }
 
     private func save() {
-        if viewModel.save(using: makeRepository()) {
+        if viewModel.save() {
             dismiss()
         }
     }
 
     private func loadData() {
         viewModel.loadData(
-            defaultCurrency: CurrencyCode(rawValue: defaultCurrencyRaw) ?? .eur,
-            using: makeRepository()
+            defaultCurrency: CurrencyCode(rawValue: defaultCurrencyRaw) ?? .eur
         )
     }
 }
@@ -82,11 +78,10 @@ struct NewTransactionView: View {
         defaultMode: .expense,
         preselectedAccountID: nil,
         preselectedCategoryID: nil,
-        transactionService: TransactionService()
+        repository: repository
     )
 
     return NewTransactionView(
-        viewModel: viewModel,
-        makeRepository: { repository }
+        viewModel: viewModel
     )
 }

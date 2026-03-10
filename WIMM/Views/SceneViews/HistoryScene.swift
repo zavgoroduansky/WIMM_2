@@ -2,24 +2,23 @@ import SwiftUI
 import SwiftData
 
 struct HistoryScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
 
-    @StateObject private var viewModel: HistoryViewModel
+    @ObservedObject private var viewModel: HistoryViewModel
 
-    init(modelContext: ModelContext, dependencies: AppDependencies) {
-        self.modelContext = modelContext
+    init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _viewModel = StateObject(wrappedValue: dependencies.makeHistoryViewModel())
+        guard let viewModel = dependencies.historyViewModel else {
+            fatalError("AppDependencies not configured.")
+        }
+        _viewModel = ObservedObject(wrappedValue: viewModel)
     }
 
     var body: some View {
         HistoryView(
             viewModel: viewModel,
-            makeRepository: { dependencies.makeFinanceRepository(modelContext: modelContext) },
             makeNewTransactionView: { mode, preselectedAccountID, preselectedCategoryID in
                 AnyView(NewTransactionScene(
-                    modelContext: modelContext,
                     dependencies: dependencies,
                     defaultMode: mode,
                     preselectedAccountID: preselectedAccountID,
@@ -33,5 +32,6 @@ struct HistoryScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return HistoryScene(modelContext: context, dependencies: dependencies)
+    dependencies.configure(modelContext: context)
+    return HistoryScene(dependencies: dependencies)
 }

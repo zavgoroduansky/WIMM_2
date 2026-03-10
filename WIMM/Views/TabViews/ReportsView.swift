@@ -1,11 +1,9 @@
 import SwiftUI
-import SwiftData
 import Charts
 
 struct ReportsView: View {
     @AppStorage("defaultCurrency") private var defaultCurrencyRaw = CurrencyCode.eur.rawValue
     @ObservedObject var viewModel: ReportsViewModel
-    let makeRepository: () -> FinanceRepositorying
 
     var body: some View {
         NavigationStack {
@@ -51,18 +49,17 @@ struct ReportsView: View {
     }
 
     private func load() {
-        viewModel.loadTransactions(using: makeRepository())
+        viewModel.loadTransactions()
     }
 }
 
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = ReportsViewModel(rateProvider: PreviewRateProvider())
-    viewModel.loadTransactions(using: repository)
+    let viewModel = ReportsViewModel(rateProvider: PreviewRateProvider(), repository: repository)
+    viewModel.loadTransactions()
 
     return ReportsView(
-        viewModel: viewModel,
-        makeRepository: { repository }
+        viewModel: viewModel
     )
 }

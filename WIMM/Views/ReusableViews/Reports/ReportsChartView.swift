@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct ReportsChartView: View {
-    let items: [ReportsViewModel.CategoryChartItem]
+    let items: [ReportsUseCase.CategoryChartItem]
     let chartType: ReportsViewModel.ChartType
 
     var body: some View {
@@ -39,8 +39,8 @@ struct ReportsChartView: View {
 
 #Preview {
     let items = [
-        ReportsViewModel.CategoryChartItem(category: "Food", totalMinor: 1200, colorHex: "#22C55E"),
-        ReportsViewModel.CategoryChartItem(category: "Rent", totalMinor: 5400, colorHex: "#3B82F6")
+        ReportsUseCase.CategoryChartItem(category: "Food", totalMinor: 1200, colorHex: "#22C55E"),
+        ReportsUseCase.CategoryChartItem(category: "Rent", totalMinor: 5400, colorHex: "#3B82F6")
     ]
     return ReportsChartView(items: items, chartType: .bar)
 }

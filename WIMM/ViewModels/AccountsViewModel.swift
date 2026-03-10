@@ -21,21 +21,11 @@ final class AccountsViewModel: ObservableObject {
     }
 
     func orderedGroups(from accountGroups: [AccountGroup]) -> [AccountGroup] {
-        accountGroups.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+        accountGroups.sortedByOrderThenName()
     }
 
     func orderedAccounts(in group: AccountGroup) -> [Account] {
-        group.accounts.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+        group.accounts.sortedByOrderThenName()
     }
 
     func didTapAccount(_ account: Account) {

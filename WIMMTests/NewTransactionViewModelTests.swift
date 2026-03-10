@@ -13,7 +13,7 @@ struct NewTransactionViewModelTests {
         let incomeCategory = TestDataFactory.makeCategory(name: "Salary", kind: .income)
         let expenseCategory = TestDataFactory.makeCategory(name: "Food", kind: .expense)
 
-        let viewModel = NewTransactionViewModel(defaultMode: .expense, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .expense, repository: MockFinanceRepository())
         viewModel.updateData(
             accountGroups: [group],
             categories: [incomeCategory, expenseCategory],
@@ -30,16 +30,14 @@ struct NewTransactionViewModelTests {
 
     @Test
     func saveIncomeUsesInjectedService() throws {
-        let context = try TestDataFactory.makeInMemoryContext()
-
         let group = TestDataFactory.makeAccountGroup(name: "Cash")
         let account = TestDataFactory.makeAccount(name: "Wallet", accountGroup: group)
         group.accounts = [account]
 
         let category = TestDataFactory.makeCategory(name: "Salary", kind: .income)
 
-        let service = MockTransactionService()
-        let viewModel = NewTransactionViewModel(defaultMode: .income, transactionService: service)
+        let repository = MockFinanceRepository()
+        let viewModel = NewTransactionViewModel(defaultMode: .income, repository: repository)
 
         viewModel.updateData(accountGroups: [group], categories: [category], defaultCurrency: .eur)
         viewModel.mode = .income
@@ -47,14 +45,14 @@ struct NewTransactionViewModelTests {
         viewModel.amount = "100"
         viewModel.note = "  test note  "
 
-        let isSaved = viewModel.save(in: context)
+        let isSaved = viewModel.save()
 
         #expect(isSaved)
-        #expect(service.incomeCalls == 1)
-        #expect(service.lastIncomeAmountMinor == 10_000)
-        #expect(service.lastIncomeCurrency == .eur)
-        #expect(service.lastIncomeCategoryID == category.id)
-        #expect(service.lastIncomeNote == "test note")
+        #expect(repository.createIncomeCalls == 1)
+        #expect(repository.lastIncomeAmountMinor == 10_000)
+        #expect(repository.lastIncomeCurrency == .eur)
+        #expect(repository.lastIncomeCategoryID == category.id)
+        #expect(repository.lastIncomeNote == "test note")
     }
 
     @Test
@@ -64,7 +62,7 @@ struct NewTransactionViewModelTests {
         let to = TestDataFactory.makeAccount(name: "To", enabledCurrencies: [.usd], accountGroup: group)
         group.accounts = [from, to]
 
-        let viewModel = NewTransactionViewModel(defaultMode: .transfer, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [], defaultCurrency: .eur)
 
         viewModel.mode = .transfer
@@ -88,7 +86,7 @@ struct NewTransactionViewModelTests {
         let to = TestDataFactory.makeAccount(name: "To", enabledCurrencies: [.eur], accountGroup: group)
         group.accounts = [from, to]
 
-        let viewModel = NewTransactionViewModel(defaultMode: .transfer, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [], defaultCurrency: .eur)
 
         viewModel.mode = .transfer
@@ -116,7 +114,7 @@ struct NewTransactionViewModelTests {
             defaultMode: .expense,
             preselectedAccountID: a2.id,
             preselectedCategoryID: c1.id,
-            transactionService: MockTransactionService()
+            repository: MockFinanceRepository()
         )
         viewModel.updateData(accountGroups: [group], categories: [c1, c2], defaultCurrency: .eur)
 
@@ -136,7 +134,7 @@ struct NewTransactionViewModelTests {
         group.accounts = [account]
 
         let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
-        let viewModel = NewTransactionViewModel(defaultMode: .expense, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .expense, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [category], defaultCurrency: .usd)
 
         #expect(viewModel.transactionCurrency == .eur)
@@ -152,7 +150,7 @@ struct NewTransactionViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [], transactions: [])
 
-        let viewModel = NewTransactionViewModel(defaultMode: .transfer, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [], defaultCurrency: .eur)
         viewModel.mode = .transfer
         viewModel.fromAccountID = from.id
@@ -162,7 +160,7 @@ struct NewTransactionViewModelTests {
         viewModel.amount = "10"
         viewModel.amountTo = "20"
 
-        let saved = viewModel.save(using: repo)
+        let saved = viewModel.save()
 
         #expect(saved)
         #expect(repo.createTransferCalls == 1)
@@ -176,7 +174,7 @@ struct NewTransactionViewModelTests {
         let to = TestDataFactory.makeAccount(name: "To", enabledCurrencies: [.eur], accountGroup: group)
         group.accounts = [from, to]
 
-        let viewModel = NewTransactionViewModel(defaultMode: .transfer, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [], defaultCurrency: .eur)
         viewModel.mode = .transfer
         viewModel.fromAccountID = from.id
@@ -196,7 +194,7 @@ struct NewTransactionViewModelTests {
         let group = TestDataFactory.makeAccountGroup(name: "Cash")
         let account = TestDataFactory.makeAccount(name: "Wallet", accountGroup: group)
 
-        let viewModel = NewTransactionViewModel(defaultMode: .expense, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .expense, repository: MockFinanceRepository())
         let label = viewModel.accountPickerLabel(for: account)
 
         #expect(label == "Cash • Wallet")
@@ -214,7 +212,7 @@ struct NewTransactionViewModelTests {
         group.accounts = [account]
 
         let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
-        let viewModel = NewTransactionViewModel(defaultMode: .expense, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .expense, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [category], defaultCurrency: .usd)
         viewModel.accountID = account.id
         viewModel.transactionCurrency = .usd
@@ -241,7 +239,7 @@ struct NewTransactionViewModelTests {
         )
         group.accounts = [from, to]
 
-        let viewModel = NewTransactionViewModel(defaultMode: .transfer, transactionService: MockTransactionService())
+        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: MockFinanceRepository())
         viewModel.updateData(accountGroups: [group], categories: [], defaultCurrency: .uah)
         viewModel.fromAccountID = from.id
         viewModel.toAccountID = to.id

@@ -2,6 +2,7 @@ import Foundation
 
 protocol ExchangeRateProvider {
     func rate(from: CurrencyCode, to: CurrencyCode, on date: Date?) async throws -> Decimal
+    func convert(minor amountMinor: Int64, from: CurrencyCode, to: CurrencyCode, on date: Date?) async throws -> Int64
 }
 
 enum ExchangeRateError: LocalizedError {
@@ -26,15 +27,20 @@ actor ExchangeRateCache {
 
     private let key = "exchange_rate_cache_v1"
     private let defaults: UserDefaults
+    private let ttl: TimeInterval
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, ttl: TimeInterval = 12 * 60 * 60) {
         self.defaults = defaults
+        self.ttl = ttl
     }
 
     func get(for cacheKey: String) -> Decimal? {
         guard let data = defaults.data(forKey: key),
               let map = try? JSONDecoder().decode([String: Entry].self, from: data),
               let entry = map[cacheKey] else {
+            return nil
+        }
+        if Date().timeIntervalSince(entry.savedAt) > ttl {
             return nil
         }
         return Decimal(string: entry.rateString)
@@ -102,7 +108,7 @@ struct FrankfurterRateProvider: ExchangeRateProvider {
         minor amountMinor: Int64,
         from: CurrencyCode,
         to: CurrencyCode,
-        date: Date? = nil
+        on date: Date? = nil
     ) async throws -> Int64 {
         let fxRate = try await rate(from: from, to: to, on: date)
         let sourceAmount = Money.decimal(fromMinor: amountMinor)
@@ -152,6 +158,20 @@ struct FrankfurterRateProvider: ExchangeRateProvider {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
+}
+
+extension ExchangeRateProvider {
+    func convert(
+        minor amountMinor: Int64,
+        from: CurrencyCode,
+        to: CurrencyCode,
+        on date: Date? = nil
+    ) async throws -> Int64 {
+        let fxRate = try await rate(from: from, to: to, on: date)
+        let sourceAmount = Money.decimal(fromMinor: amountMinor)
+        let converted = sourceAmount * fxRate
+        return Money.minor(fromDecimal: converted)
+    }
 }
 
 struct AccountGroupBalanceSummary {
@@ -216,17 +236,11 @@ final class AccountGroupBalanceService: AccountGroupBalanceServicing {
             return amountMinor
         }
 
-        if let frankfurter = rateProvider as? FrankfurterRateProvider {
-            return try await frankfurter.convert(
-                minor: amountMinor,
-                from: from,
-                to: defaultCurrency,
-                date: date
-            )
-        }
-
-        let rate = try await rateProvider.rate(from: from, to: defaultCurrency, on: date)
-        let converted = Money.decimal(fromMinor: amountMinor) * rate
-        return Money.minor(fromDecimal: converted)
+        return try await rateProvider.convert(
+            minor: amountMinor,
+            from: from,
+            to: defaultCurrency,
+            on: date
+        )
     }
 }

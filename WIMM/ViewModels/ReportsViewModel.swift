@@ -17,53 +17,36 @@ final class ReportsViewModel: ObservableObject {
         }
     }
 
-    struct CategoryChartItem: Identifiable {
-        let id = UUID()
-        let category: String
-        let totalMinor: Int64
-        let colorHex: String?
-
-        var total: Double {
-            Double(totalMinor) / 100.0
-        }
-    }
-
     @Published var chartType: ChartType = .bar
     @Published var selectedMonthStart: Date
     @Published private(set) var transactions: [Transaction] = []
-    @Published private(set) var items: [CategoryChartItem] = []
+    @Published private(set) var items: [ReportsUseCase.CategoryChartItem] = []
     @Published private(set) var totalExpenseMinor: Int64 = 0
     @Published private(set) var totalIncomeMinor: Int64 = 0
     @Published private(set) var missingCount = 0
 
-    private let rateProvider: ExchangeRateProvider
+    private let repository: FinanceRepositorying
+    private let useCase: ReportsUseCase
 
     init(
         rateProvider: ExchangeRateProvider,
+        repository: FinanceRepositorying,
         calendar: Calendar = .current
     ) {
-        self.rateProvider = rateProvider
+        self.repository = repository
+        self.useCase = ReportsUseCase(rateProvider: rateProvider, calendar: calendar)
         self.selectedMonthStart = calendar.dateInterval(of: .month, for: .now)?.start ?? .now
     }
 
     func monthOptions(from transactions: [Transaction], calendar: Calendar = .current) -> [Date] {
-        var starts = Set<Date>()
-        starts.insert(calendar.dateInterval(of: .month, for: .now)?.start ?? .now)
-
-        for tx in transactions {
-            if let monthStart = calendar.dateInterval(of: .month, for: tx.date)?.start {
-                starts.insert(monthStart)
-            }
-        }
-
-        return starts.sorted(by: >)
+        ReportsUseCase.monthOptions(from: transactions, calendar: calendar)
     }
 
     var monthOptions: [Date] {
         monthOptions(from: transactions)
     }
 
-    func loadTransactions(using repository: FinanceRepositorying) {
+    func loadTransactions() {
         transactions = (try? repository.fetchTransactions()) ?? []
     }
 
@@ -82,7 +65,8 @@ final class ReportsViewModel: ObservableObject {
     }
 
     func taskKey(transactions: [Transaction], defaultCurrency: CurrencyCode) -> String {
-        "\(selectedMonthStart.timeIntervalSince1970)-\(chartType.rawValue)-\(defaultCurrency.rawValue)-\(transactions.count)"
+        let signature = transactionsSignature(transactions)
+        return "\(selectedMonthStart.timeIntervalSince1970)-\(chartType.rawValue)-\(defaultCurrency.rawValue)-\(signature)"
     }
 
     func taskKey(defaultCurrency: CurrencyCode) -> String {
@@ -94,68 +78,34 @@ final class ReportsViewModel: ObservableObject {
         defaultCurrency: CurrencyCode,
         calendar: Calendar = .current
     ) async {
-        let filtered = transactions.filter { tx in
-            tx.transferGroupId == nil && calendar.isDate(tx.date, equalTo: selectedMonthStart, toGranularity: .month)
-        }
-
-        struct CategorySummaryKey: Hashable {
-            let name: String
-            let colorHex: String?
-        }
-
-        var expenseByCategory: [CategorySummaryKey: Int64] = [:]
-        var expenseTotal: Int64 = 0
-        var incomeTotal: Int64 = 0
-        var missing = 0
-
-        for tx in filtered {
-            do {
-                let converted = try await convert(
-                    minor: tx.amountMinor,
-                    from: tx.currency,
-                    to: defaultCurrency,
-                    date: tx.date
-                )
-
-                if tx.kind == .expense {
-                    expenseTotal += converted
-                    let key = CategorySummaryKey(
-                        name: tx.category?.name ?? "Uncategorized",
-                        colorHex: tx.category?.colorHex
-                    )
-                    expenseByCategory[key, default: 0] += converted
-                } else {
-                    incomeTotal += converted
-                }
-            } catch {
-                missing += 1
-            }
-        }
-
-        items = expenseByCategory
-            .map { CategoryChartItem(category: $0.key.name, totalMinor: $0.value, colorHex: $0.key.colorHex) }
-            .sorted { $0.totalMinor > $1.totalMinor }
-        totalExpenseMinor = expenseTotal
-        totalIncomeMinor = incomeTotal
-        missingCount = missing
+        let result = await useCase.buildReport(
+            transactions: transactions,
+            defaultCurrency: defaultCurrency,
+            selectedMonthStart: selectedMonthStart
+        )
+        items = result.items
+        totalExpenseMinor = result.totalExpenseMinor
+        totalIncomeMinor = result.totalIncomeMinor
+        missingCount = result.missingCount
     }
 
     func loadReport(defaultCurrency: CurrencyCode, calendar: Calendar = .current) async {
         await loadReport(transactions: transactions, defaultCurrency: defaultCurrency, calendar: calendar)
     }
 
-    private func convert(
-        minor amountMinor: Int64,
-        from: CurrencyCode,
-        to: CurrencyCode,
-        date: Date
-    ) async throws -> Int64 {
-        if from == to {
-            return amountMinor
+    private func transactionsSignature(_ transactions: [Transaction]) -> String {
+        let sorted = transactions.sorted { $0.id.uuidString < $1.id.uuidString }
+        var hash: UInt64 = 14695981039346656037
+        let prime: UInt64 = 1099511628211
+
+        for tx in sorted {
+            let payload = "\(tx.id.uuidString)|\(tx.kind.rawValue)|\(tx.amountMinor)|\(tx.currency.rawValue)|\(tx.date.timeIntervalSince1970)|\(tx.transferGroupId?.uuidString ?? "-")"
+            for byte in payload.utf8 {
+                hash ^= UInt64(byte)
+                hash &*= prime
+            }
         }
 
-        let rate = try await rateProvider.rate(from: from, to: to, on: date)
-        let sourceAmount = Money.decimal(fromMinor: amountMinor)
-        return Money.minor(fromDecimal: sourceAmount * rate)
+        return String(hash, radix: 16)
     }
 }

@@ -23,7 +23,6 @@ struct ManageCategoriesView: View {
     }
 
     @ObservedObject var viewModel: ManageCategoriesViewModel
-    let makeRepository: () -> FinanceRepositorying
     let makeAddCategoryView: (_ initialKind: CategoryKind) -> AnyView
 
     @State private var showAdd = false
@@ -50,7 +49,7 @@ struct ManageCategoriesView: View {
                         if let reason = viewModel.deleteCategoryBlockedReason(category) {
                             deleteAlertMessage = reason
                         } else {
-                            viewModel.deleteCategory(category, using: makeRepository())
+                            viewModel.deleteCategory(category)
                             load()
                         }
                     }
@@ -85,8 +84,7 @@ struct ManageCategoriesView: View {
                     category,
                     name: payload.name,
                     kind: payload.kind,
-                    colorHex: payload.colorHex,
-                    using: makeRepository()
+                    colorHex: payload.colorHex
                 )
                 load()
             }
@@ -117,20 +115,19 @@ struct ManageCategoriesView: View {
     }
 
     private func load() {
-        viewModel.load(using: makeRepository())
+        viewModel.load()
     }
 }
 
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = ManageCategoriesViewModel()
-    viewModel.load(using: repository)
+    let viewModel = ManageCategoriesViewModel(repository: repository)
+    viewModel.load()
 
     return NavigationStack {
         ManageCategoriesView(
             viewModel: viewModel,
-            makeRepository: { repository },
             makeAddCategoryView: { _ in AnyView(EmptyView()) }
         )
     }

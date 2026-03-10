@@ -2,25 +2,26 @@ import SwiftUI
 import SwiftData
 
 struct SettingsScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
 
-    @StateObject private var viewModel: SettingsViewModel
+    @ObservedObject private var viewModel: SettingsViewModel
 
-    init(modelContext: ModelContext, dependencies: AppDependencies) {
-        self.modelContext = modelContext
+    init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _viewModel = StateObject(wrappedValue: dependencies.makeSettingsViewModel())
+        guard let viewModel = dependencies.settingsViewModel else {
+            fatalError("AppDependencies not configured.")
+        }
+        _viewModel = ObservedObject(wrappedValue: viewModel)
     }
 
     var body: some View {
         SettingsView(
             viewModel: viewModel,
             makeManageAccountsView: {
-                AnyView(ManageAccountsScene(modelContext: modelContext, dependencies: dependencies))
+                AnyView(ManageAccountsScene(dependencies: dependencies))
             },
             makeManageCategoriesView: {
-                AnyView(ManageCategoriesScene(modelContext: modelContext, dependencies: dependencies))
+                AnyView(ManageCategoriesScene(dependencies: dependencies))
             }
         )
     }
@@ -29,5 +30,6 @@ struct SettingsScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return SettingsScene(modelContext: context, dependencies: dependencies)
+    dependencies.configure(modelContext: context)
+    return SettingsScene(dependencies: dependencies)
 }

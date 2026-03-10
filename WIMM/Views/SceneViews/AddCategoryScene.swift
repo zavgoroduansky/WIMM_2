@@ -2,18 +2,15 @@ import SwiftUI
 import SwiftData
 
 struct AddCategoryScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
     let initialKind: CategoryKind
 
     @StateObject private var viewModel: AddCategoryViewModel
 
     init(
-        modelContext: ModelContext,
         dependencies: AppDependencies,
         initialKind: CategoryKind = .expense
     ) {
-        self.modelContext = modelContext
         self.dependencies = dependencies
         self.initialKind = initialKind
         _viewModel = StateObject(
@@ -23,8 +20,7 @@ struct AddCategoryScene: View {
 
     var body: some View {
         AddCategoryView(
-            viewModel: viewModel,
-            makeRepository: { dependencies.makeFinanceRepository(modelContext: modelContext) }
+            viewModel: viewModel
         )
     }
 }
@@ -32,5 +28,6 @@ struct AddCategoryScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return AddCategoryScene(modelContext: context, dependencies: dependencies, initialKind: .expense)
+    dependencies.configure(modelContext: context)
+    return AddCategoryScene(dependencies: dependencies, initialKind: .expense)
 }

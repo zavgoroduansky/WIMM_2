@@ -2,21 +2,21 @@ import SwiftUI
 import SwiftData
 
 struct AddAccountScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
 
-    @StateObject private var viewModel: AddAccountViewModel
+    @ObservedObject private var viewModel: AddAccountViewModel
 
-    init(modelContext: ModelContext, dependencies: AppDependencies) {
-        self.modelContext = modelContext
+    init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _viewModel = StateObject(wrappedValue: dependencies.makeAddAccountViewModel())
+        guard let viewModel = dependencies.addAccountViewModel else {
+            fatalError("AppDependencies not configured.")
+        }
+        _viewModel = ObservedObject(wrappedValue: viewModel)
     }
 
     var body: some View {
         AddAccountView(
-            viewModel: viewModel,
-            makeRepository: { dependencies.makeFinanceRepository(modelContext: modelContext) }
+            viewModel: viewModel
         )
     }
 }
@@ -24,5 +24,6 @@ struct AddAccountScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return AddAccountScene(modelContext: context, dependencies: dependencies)
+    dependencies.configure(modelContext: context)
+    return AddAccountScene(dependencies: dependencies)
 }
