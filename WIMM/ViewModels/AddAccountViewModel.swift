@@ -22,6 +22,11 @@ final class AddAccountViewModel: ObservableObject {
 
     private(set) var accountGroups: [AccountGroup] = []
     private var didInitialize = false
+    private let repository: FinanceRepositorying
+
+    init(repository: FinanceRepositorying) {
+        self.repository = repository
+    }
 
     func update(accountGroups: [AccountGroup], defaultCurrencyRaw: String) {
         self.accountGroups = accountGroups
@@ -42,18 +47,13 @@ final class AddAccountViewModel: ObservableObject {
         }
     }
 
-    func load(using repository: FinanceRepositorying, defaultCurrencyRaw: String) {
+    func load(defaultCurrencyRaw: String) {
         let groups = (try? repository.fetchAccountGroups()) ?? []
         update(accountGroups: groups, defaultCurrencyRaw: defaultCurrencyRaw)
     }
 
     var orderedGroups: [AccountGroup] {
-        accountGroups.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+        accountGroups.sortedByOrderThenName()
     }
 
     var selectedAccountGroup: AccountGroup? {
@@ -84,7 +84,7 @@ final class AddAccountViewModel: ObservableObject {
     }
 
     @discardableResult
-    func save(using repository: FinanceRepositorying) -> Bool {
+    func save() -> Bool {
         guard canSave else { return false }
 
         let accountGroup: AccountGroup

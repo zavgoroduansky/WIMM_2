@@ -14,6 +14,19 @@ final class MockFinanceRepository: FinanceRepositorying {
     private(set) var deleteCalls = 0
     private(set) var saveCalls = 0
 
+    private(set) var lastIncomeAmountMinor: Int64?
+    private(set) var lastIncomeCurrency: CurrencyCode?
+    private(set) var lastIncomeCategoryID: UUID?
+    private(set) var lastIncomeNote: String?
+    private(set) var lastExpenseAmountMinor: Int64?
+    private(set) var lastExpenseCurrency: CurrencyCode?
+    private(set) var lastExpenseCategoryID: UUID?
+    private(set) var lastExpenseNote: String?
+    private(set) var lastTransferFromAmountMinor: Int64?
+    private(set) var lastTransferToAmountMinor: Int64?
+    private(set) var lastTransferFromCurrency: CurrencyCode?
+    private(set) var lastTransferToCurrency: CurrencyCode?
+
     func seed(groups: [AccountGroup], categories: [WIMM.Category], transactions: [Transaction]) {
         self.accountGroups = groups
         self.categories = categories
@@ -81,6 +94,10 @@ final class MockFinanceRepository: FinanceRepositorying {
         note: String?
     ) throws {
         createIncomeCalls += 1
+        lastIncomeAmountMinor = amountMinor
+        lastIncomeCurrency = currency
+        lastIncomeCategoryID = category?.id
+        lastIncomeNote = note
         let tx = Transaction(kind: .income, amountMinor: amountMinor, currency: currency, date: date, note: note, account: account, category: category)
         transactions.append(tx)
     }
@@ -94,6 +111,10 @@ final class MockFinanceRepository: FinanceRepositorying {
         note: String?
     ) throws {
         createExpenseCalls += 1
+        lastExpenseAmountMinor = amountMinor
+        lastExpenseCurrency = currency
+        lastExpenseCategoryID = category?.id
+        lastExpenseNote = note
         let tx = Transaction(kind: .expense, amountMinor: amountMinor, currency: currency, date: date, note: note, account: account, category: category)
         transactions.append(tx)
     }
@@ -109,6 +130,10 @@ final class MockFinanceRepository: FinanceRepositorying {
         note: String?
     ) throws {
         createTransferCalls += 1
+        lastTransferFromAmountMinor = amountFromMinor
+        lastTransferToAmountMinor = amountToMinor ?? amountFromMinor
+        lastTransferFromCurrency = fromCurrency
+        lastTransferToCurrency = toCurrency
         let groupID = UUID()
         let outflow = Transaction(
             kind: .expense,

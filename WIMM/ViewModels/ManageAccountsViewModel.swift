@@ -6,7 +6,13 @@ final class ManageAccountsViewModel: ObservableObject {
     @Published private(set) var accountGroups: [AccountGroup] = []
     @Published private(set) var accountIDsWithTransactions: Set<UUID> = []
 
-    func load(using repository: FinanceRepositorying) {
+    private let repository: FinanceRepositorying
+
+    init(repository: FinanceRepositorying) {
+        self.repository = repository
+    }
+
+    func load() {
         accountGroups = (try? repository.fetchAccountGroups()) ?? []
         let transactions = (try? repository.fetchTransactions()) ?? []
         accountIDsWithTransactions = Set(transactions.map(\.account.id))
@@ -17,24 +23,14 @@ final class ManageAccountsViewModel: ObservableObject {
     }
 
     func orderedGroups(from accountGroups: [AccountGroup]) -> [AccountGroup] {
-        accountGroups.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+        accountGroups.sortedByOrderThenName()
     }
 
     func accounts(in group: AccountGroup) -> [Account] {
-        group.accounts.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+        group.accounts.sortedByOrderThenName()
     }
 
-    func deleteGroup(_ group: AccountGroup, using repository: FinanceRepositorying) {
+    func deleteGroup(_ group: AccountGroup) {
         repository.delete(group)
         try? repository.save()
     }
@@ -54,13 +50,13 @@ final class ManageAccountsViewModel: ObservableObject {
         !accountIDsWithTransactions.contains(account.id)
     }
 
-    func deleteAccount(_ account: Account, using repository: FinanceRepositorying) {
+    func deleteAccount(_ account: Account) {
         guard canDeleteAccount(account) else { return }
         repository.delete(account)
         try? repository.save()
     }
 
-    func renameGroup(_ group: AccountGroup, to newName: String, using repository: FinanceRepositorying) {
+    func renameGroup(_ group: AccountGroup, to newName: String) {
         group.name = newName
         try? repository.save()
     }
@@ -72,7 +68,6 @@ final class ManageAccountsViewModel: ObservableObject {
         primaryCurrency: CurrencyCode,
         enabledCurrencies: [CurrencyCode],
         accountGroup: AccountGroup,
-        using repository: FinanceRepositorying
     ) {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
@@ -93,7 +88,7 @@ final class ManageAccountsViewModel: ObservableObject {
         try? repository.save()
     }
 
-    func moveGroups(from source: IndexSet, to destination: Int, current: [AccountGroup], using repository: FinanceRepositorying) {
+    func moveGroups(from source: IndexSet, to destination: Int, current: [AccountGroup]) {
         var mutable = orderedGroups(from: current)
         moveElements(in: &mutable, from: source, to: destination)
 
@@ -104,7 +99,7 @@ final class ManageAccountsViewModel: ObservableObject {
         try? repository.save()
     }
 
-    func moveAccounts(in group: AccountGroup, source: IndexSet, destination: Int, using repository: FinanceRepositorying) {
+    func moveAccounts(in group: AccountGroup, source: IndexSet, destination: Int) {
         var mutable = accounts(in: group)
         moveElements(in: &mutable, from: source, to: destination)
 
@@ -137,7 +132,13 @@ final class ManageCategoriesViewModel: ObservableObject {
     @Published private(set) var categories: [Category] = []
     @Published private(set) var categoryIDsWithTransactions: Set<UUID> = []
 
-    func load(using repository: FinanceRepositorying) {
+    private let repository: FinanceRepositorying
+
+    init(repository: FinanceRepositorying) {
+        self.repository = repository
+    }
+
+    func load() {
         categories = (try? repository.fetchCategories()) ?? []
         let transactions = (try? repository.fetchTransactions()) ?? []
         categoryIDsWithTransactions = Set(transactions.compactMap { $0.category?.id })
@@ -154,9 +155,7 @@ final class ManageCategoriesViewModel: ObservableObject {
     func sortedCategories(from categories: [Category], kind: CategoryKind) -> [Category] {
         categories
             .filter { $0.kind == kind }
-            .sorted { lhs, rhs in
-                lhs.name < rhs.name
-            }
+            .sortedByName()
     }
 
     func canDeleteCategory(_ category: Category) -> Bool {
@@ -174,7 +173,7 @@ final class ManageCategoriesViewModel: ObservableObject {
         !categoryIDsWithTransactions.contains(category.id)
     }
 
-    func deleteCategory(_ category: Category, using repository: FinanceRepositorying) {
+    func deleteCategory(_ category: Category) {
         guard canDeleteCategory(category) else { return }
         repository.delete(category)
         try? repository.save()
@@ -185,7 +184,6 @@ final class ManageCategoriesViewModel: ObservableObject {
         name: String,
         kind: CategoryKind,
         colorHex: String,
-        using repository: FinanceRepositorying
     ) {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
@@ -204,6 +202,11 @@ final class ManageCategoriesViewModel: ObservableObject {
 final class EditAccountCurrenciesViewModel: ObservableObject {
     @Published var selected: Set<CurrencyCode> = []
     @Published var primary: CurrencyCode = .eur
+    private let repository: FinanceRepositorying
+
+    init(repository: FinanceRepositorying) {
+        self.repository = repository
+    }
 
     func applyInitialState(from account: Account) {
         selected = Set(account.enabledCurrencies)
@@ -228,7 +231,7 @@ final class EditAccountCurrenciesViewModel: ObservableObject {
         }
     }
 
-    func save(account: Account, using repository: FinanceRepositorying) {
+    func save(account: Account) {
         let finalSelected = selected.isEmpty ? [primary] : Array(selected)
         account.primaryCurrency = primary
         account.enabledCurrencies = finalSelected

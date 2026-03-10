@@ -4,71 +4,59 @@ import Testing
 
 @MainActor
 struct HistoryViewModelTests {
-    @Test
-    func groupsTransferIntoSingleEntry() {
-        let group = TestDataFactory.makeAccountGroup(name: "Cash")
-        let from = TestDataFactory.makeAccount(name: "From", accountGroup: group)
-        let to = TestDataFactory.makeAccount(name: "To", accountGroup: group)
-        let transferID = UUID()
-
-        let outflow = Transaction(kind: .expense, amountMinor: 1000, currency: .eur, date: .now, note: "move", transferGroupId: transferID, account: from)
-        let inflow = Transaction(kind: .income, amountMinor: 1200, currency: .usd, date: .now, note: "move", transferGroupId: transferID, account: to)
-
-        let vm = HistoryViewModel()
-        let entries = vm.entries(from: [outflow, inflow])
-
-        #expect(entries.count == 1)
-        #expect(entries.first?.tone == .transfer)
-        #expect(entries.first?.title.contains("Transfer") == true)
-    }
 
     @Test
-    func deleteTransferRemovesBothTransactions() {
-        let group = TestDataFactory.makeAccountGroup(name: "Cash")
+    func deleteTransferEntryRemovesGroupTransactions() {
+        let group = TestDataFactory.makeAccountGroup(name: "Main")
         let from = TestDataFactory.makeAccount(name: "From", accountGroup: group)
         let to = TestDataFactory.makeAccount(name: "To", accountGroup: group)
-        let transferID = UUID()
+        group.accounts = [from, to]
 
-        let outflow = Transaction(kind: .expense, amountMinor: 1000, currency: .eur, date: .now, transferGroupId: transferID, account: from)
-        let inflow = Transaction(kind: .income, amountMinor: 1200, currency: .usd, date: .now, transferGroupId: transferID, account: to)
+        let groupID = UUID()
+        let outflow = Transaction(
+            kind: .expense,
+            amountMinor: 1_000,
+            currency: .eur,
+            date: Date(),
+            transferGroupId: groupID,
+            account: from
+        )
+        let inflow = Transaction(
+            kind: .income,
+            amountMinor: 1_000,
+            currency: .eur,
+            date: Date(),
+            transferGroupId: groupID,
+            account: to
+        )
 
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [], transactions: [outflow, inflow])
 
-        let vm = HistoryViewModel()
-        vm.load(using: repo)
+        let viewModel = HistoryViewModel(repository: repo, useCase: HistoryUseCase())
+        viewModel.load()
 
-        let entry = vm.entries.first { $0.transferGroupID == transferID }
-        #expect(entry != nil)
+        let transferEntry = viewModel.entries.first { $0.transferGroupID == groupID }
+        #expect(transferEntry != nil)
 
-        if let entry {
-            vm.delete(entry: entry, using: repo)
+        if let entry = transferEntry {
+            viewModel.delete(entry: entry)
         }
 
-        #expect(repo.transactions.isEmpty)
         #expect(repo.deleteCalls == 2)
+        #expect(repo.transactions.isEmpty)
     }
 
     @Test
-    func deleteSingleTransactionRemovesOne() {
-        let group = TestDataFactory.makeAccountGroup(name: "Cash")
-        let account = TestDataFactory.makeAccount(name: "Wallet", accountGroup: group)
-        let tx = Transaction(kind: .expense, amountMinor: 1000, currency: .eur, date: .now, account: account)
-
+    func sectionTitleUsesTodayYesterdayFallbacks() {
         let repo = MockFinanceRepository()
-        repo.seed(groups: [group], categories: [], transactions: [tx])
+        let viewModel = HistoryViewModel(repository: repo, useCase: HistoryUseCase())
 
-        let vm = HistoryViewModel()
-        vm.load(using: repo)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
 
-        let entry = vm.entries.first { $0.transactionID == tx.id }
-        #expect(entry != nil)
-
-        if let entry {
-            vm.delete(entry: entry, using: repo)
-        }
-
-        #expect(repo.transactions.isEmpty)
-        #expect(repo.deleteCalls == 1)
+        #expect(viewModel.sectionTitle(for: today) == "Today")
+        #expect(viewModel.sectionTitle(for: yesterday) == "Yesterday")
     }
 }

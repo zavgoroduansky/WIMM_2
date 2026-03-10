@@ -1,12 +1,9 @@
 import SwiftUI
-import SwiftData
-
 struct AddAccountView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage("defaultCurrency") private var defaultCurrencyRaw = CurrencyCode.eur.rawValue
     @ObservedObject var viewModel: AddAccountViewModel
-    let makeRepository: () -> FinanceRepositorying
 
     var body: some View {
         NavigationStack {
@@ -61,7 +58,7 @@ struct AddAccountView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        if viewModel.save(using: makeRepository()) {
+                        if viewModel.save() {
                             dismiss()
                         }
                     }
@@ -69,10 +66,7 @@ struct AddAccountView: View {
                 }
             }
             .onAppear {
-                viewModel.load(
-                    using: makeRepository(),
-                    defaultCurrencyRaw: defaultCurrencyRaw
-                )
+                viewModel.load(defaultCurrencyRaw: defaultCurrencyRaw)
             }
         }
     }
@@ -81,11 +75,10 @@ struct AddAccountView: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = AddAccountViewModel()
-    viewModel.load(using: repository, defaultCurrencyRaw: CurrencyCode.eur.rawValue)
+    let viewModel = AddAccountViewModel(repository: repository)
+    viewModel.load(defaultCurrencyRaw: CurrencyCode.eur.rawValue)
 
     return AddAccountView(
-        viewModel: viewModel,
-        makeRepository: { repository }
+        viewModel: viewModel
     )
 }

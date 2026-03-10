@@ -7,7 +7,13 @@ final class CategoriesViewModel: ObservableObject {
     @Published var preselectedCategoryID: UUID?
     @Published private(set) var categories: [Category] = []
 
-    func load(using repository: FinanceRepositorying) {
+    private let repository: FinanceRepositorying
+
+    init(repository: FinanceRepositorying) {
+        self.repository = repository
+    }
+
+    func load() {
         categories = (try? repository.fetchCategories()) ?? []
     }
 

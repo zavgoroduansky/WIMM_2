@@ -2,23 +2,23 @@ import SwiftUI
 import SwiftData
 
 struct ManageCategoriesScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
 
-    @StateObject private var viewModel: ManageCategoriesViewModel
+    @ObservedObject private var viewModel: ManageCategoriesViewModel
 
-    init(modelContext: ModelContext, dependencies: AppDependencies) {
-        self.modelContext = modelContext
+    init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _viewModel = StateObject(wrappedValue: dependencies.makeManageCategoriesViewModel())
+        guard let viewModel = dependencies.manageCategoriesViewModel else {
+            fatalError("AppDependencies not configured.")
+        }
+        _viewModel = ObservedObject(wrappedValue: viewModel)
     }
 
     var body: some View {
         ManageCategoriesView(
             viewModel: viewModel,
-            makeRepository: { dependencies.makeFinanceRepository(modelContext: modelContext) },
             makeAddCategoryView: { kind in
-                AnyView(AddCategoryScene(modelContext: modelContext, dependencies: dependencies, initialKind: kind))
+                AnyView(AddCategoryScene(dependencies: dependencies, initialKind: kind))
             }
         )
     }
@@ -27,5 +27,6 @@ struct ManageCategoriesScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return ManageCategoriesScene(modelContext: context, dependencies: dependencies)
+    dependencies.configure(modelContext: context)
+    return ManageCategoriesScene(dependencies: dependencies)
 }

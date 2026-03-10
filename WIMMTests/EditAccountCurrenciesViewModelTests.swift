@@ -12,7 +12,7 @@ struct EditAccountCurrenciesViewModelTests {
             accountGroup: group
         )
 
-        let vm = EditAccountCurrenciesViewModel()
+        let vm = EditAccountCurrenciesViewModel(repository: MockFinanceRepository())
         vm.applyInitialState(from: account)
 
         #expect(vm.selected.contains(.usd))
@@ -29,7 +29,7 @@ struct EditAccountCurrenciesViewModelTests {
         )
 
         let repo = MockFinanceRepository()
-        let vm = EditAccountCurrenciesViewModel()
+        let vm = EditAccountCurrenciesViewModel(repository: MockFinanceRepository())
         vm.selected = [.usd]
         vm.primary = .usd
 

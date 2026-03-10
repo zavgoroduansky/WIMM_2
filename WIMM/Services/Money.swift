@@ -2,6 +2,8 @@ import Foundation
 
 enum Money {
     static let minorUnitFactor = Decimal(100)
+    private static var formatterCache: [CurrencyCode: NumberFormatter] = [:]
+    private static let formatterLock = NSLock()
 
     static func decimal(fromMinor minor: Int64) -> Decimal {
         Decimal(minor) / minorUnitFactor
@@ -16,11 +18,7 @@ enum Money {
 
     static func format(minor: Int64, currency: CurrencyCode) -> String {
         let decimalValue = decimal(fromMinor: minor)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: currency.localeIdentifier)
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
+        let formatter = formatter(for: currency)
 
         let number = formatter.string(from: NSDecimalNumber(decimal: decimalValue)) ?? "\(decimalValue)"
         return "\(currency.symbol)\(number)"
@@ -35,5 +33,22 @@ enum Money {
             return nil
         }
         return minor(fromDecimal: decimal)
+    }
+
+    private static func formatter(for currency: CurrencyCode) -> NumberFormatter {
+        formatterLock.lock()
+        defer { formatterLock.unlock() }
+
+        if let cached = formatterCache[currency] {
+            return cached
+        }
+
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: currency.localeIdentifier)
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatterCache[currency] = formatter
+        return formatter
     }
 }

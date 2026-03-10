@@ -1,4 +1,4 @@
-# WIMM Handoff (Updated 2026-03-10, latest-25)
+# WIMM Handoff (Updated 2026-03-10, latest-27)
 
 ## Поточний стан
 Проєкт: `/Users/ozavhorodianskyi/Documents/xCode/WIMM_2/WIMM`
@@ -507,7 +507,7 @@
   - `Views/ReusableViews/ManageAccountsView.swift`
   - `Views/ReusableViews/ManageCategoriesView.swift`
 
-## View decomposition (latest-25)
+## View decomposition (latest-27)
 - Декомпозиція `NewTransactionView`:
   - `Views/ReusableViews/NewTransaction/TransactionTypePickerView.swift`
   - `Views/ReusableViews/NewTransaction/IncomeExpenseFieldsView.swift`
@@ -541,7 +541,7 @@
 ## Як продовжити в новій сесії
 "Продовжимо з `CONTEXT_HANDOFF_2026-03-06.md`, стан після переходу на versioned schema/migration plan (локальна SwiftData без CloudKit)."
 
-## Unit tests expansion (latest-25)
+## Unit tests expansion (latest-27)
 - Додано нові unit-тести для бізнес-логіки та сервісів (без UI):
   - `WIMMTests/MoneyTests.swift`
   - `WIMMTests/AccountEnabledCurrenciesCodecTests.swift`
@@ -569,23 +569,85 @@
   - можливість/обмеження редагування/видалення Accounts/Categories;
   - діапазон сортування, tap-handlers, та default behaviors.
 
-### Build/test status (latest-25)
+### Build/test status (latest-27)
 - `xcodebuild -project WIMM.xcodeproj -scheme WIMM -destination 'generic/platform=iOS Simulator' build-for-testing`
   - Результат: `TEST BUILD FAILED` через помилки SimRuntime (XPC simdiskimaged crash). Локальні компіляційні помилки не зафіксовані.
 
-## Unit test scheme + warnings fix (latest-25)
+## Unit test scheme + warnings fix (latest-27)
 - Виправлено `#expect(false, ...)` в `TransactionServiceTests`:
   - замість завжди-фейлячих очікувань тепер перевіряється конкретна помилка через `caught`.
 - Додано shared scheme для запуску всіх unit тестів одним запуском:
   - `WIMM.xcodeproj/xcshareddata/xcschemes/WIMM-UnitTests.xcscheme`
   - у TestAction включено `WIMMTests` target.
 
-## Scheme visibility fix (latest-25)
+## Scheme visibility fix (latest-27)
 - Додано копію `WIMM-UnitTests.xcscheme` у workspace shared schemes:
   - `WIMM.xcodeproj/project.xcworkspace/xcshareddata/xcschemes/WIMM-UnitTests.xcscheme`
 - Це потрібно, якщо Xcode відкриває workspace і не бачить схем з .xcodeproj.
 
-## Test fix (latest-25)
+## Test fix (latest-27)
 - В `EditAccountViewModel.toggleCurrency` додано захист від порожнього списку валют:
   - якщо після вимкнення валюти список порожній, повертається primary назад.
   - це стабілізує тест `editAccountViewModelMaintainsPrimaryCurrency()`.
+
+## History day sections (latest-27)
+- History тепер розбиває записи по днях через секції:
+  - `HistoryViewModel.DaySection` + `sections(from:)`.
+  - `HistoryView` рендерить `Section` з хедером дати і елементами за день.
+- Дата прибрана з рядка елемента (вона в хедері секції).
+
+## History header formatting (latest-27)
+- Хедери секцій у History тепер формуються як:
+  - Today / Yesterday для поточних днів,
+  - інакше формат `d MMM yyyy`.
+- Логіка в `HistoryViewModel.sectionTitle(for:)`.
+
+## Reports refresh + FX DI cleanup + tests (latest-28)
+- `ReportsViewModel.taskKey` тепер враховує стабільний підпис транзакцій, щоб перерахунок звіту тригерився при зміні суми/дати/валюти без зміни кількості.
+- `ExchangeRateProvider` отримав `convert(...)` з дефолтною реалізацією; `AccountGroupBalanceService` більше не робить каст до `FrankfurterRateProvider`.
+- Додані тести:
+  - `WIMMTests/ExchangeRateCacheTests.swift`
+  - `WIMMTests/HistoryViewModelTests.swift` (перевірка видалення transfer-групи)
+  - `WIMMTests/ReportsViewModelTests.swift` (taskKey змінюється при зміні деталей транзакції).
+
+## DI unification + cache TTL + formatter cache (latest-29)
+- ViewModel-и тепер отримують репозиторій через `init`, `load()` більше не приймає залежності; Views/Scenes/Previews оновлені відповідно.
+- `NewTransactionViewModel` має єдиний `save()` з винесеною в приватні методи валідацією/побудовою save action (без дублювання логіки).
+- `Money.format(...)` кешує `NumberFormatter` по `CurrencyCode`.
+- `ExchangeRateCache` використовує TTL 12 годин для валідності кешу.
+- Оновлені тести для нового DI і додано перевірку TTL в `ExchangeRateCacheTests`.
+
+### Build/test status (latest-29)
+- `xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator,name=iPhone 15' test`
+  - `CoreSimulatorService connection became invalid` / sandbox restrictions; тести не стартували.
+
+## Preview fix for NewTransaction fields (latest-30)
+- В `IncomeExpenseFieldsView` та `TransferFieldsView` прибрано `return` з `#Preview` (result builder), і оновлено прев’ю під новий DI (`NewTransactionViewModel(repository:)` + `loadData`).
+  - Повторний запуск `xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator,name=iPhone 15' test` знову впав на `CoreSimulatorService connection became invalid` (sandbox restriction).
+  - `#Preview` повернуто у стандартний стиль (як в інших файлах), без `let _ =` для `loadData`, щоб уникнути `Type of expression is ambiguous`.
+
+## EditAccountCurrenciesViewModel DI fix (latest-31)
+- `EditAccountCurrenciesViewModel` тепер приймає `FinanceRepositorying` через `init`, щоб не було `repository` out-of-scope.
+- Оновлено тести `EditAccountCurrenciesViewModelTests` під новий init.
+
+## UseCases + RepositoryProvider refactor (latest-32)
+- Додано `WIMM/UseCases`: `ReportsUseCase`, `HistoryUseCase`, `NewTransactionUseCase`; бізнес-логіка винесена з відповідних ViewModel.
+- `HistoryEntryTone/HistoryEntry/HistoryDaySection` переїхали у `HistoryUseCase`; `HistoryViewModel` тепер використовує `HistoryUseCase` для побудови entries/sections/sectionTitle.
+- `ReportsViewModel` тепер делегує агрегацію до `ReportsUseCase`.
+- `NewTransactionViewModel` тепер використовує `NewTransactionUseCase` для load/save.
+- `AppDependencies` тепер конфігурується один раз через `configure(modelContext:)` і містить готові VM/repository; `Scenes` більше не прокидають `modelContext`.
+- `ContentView` показує `ProgressView` до завершення `configure(...)`.
+- Додані/оновлені тести для `HistoryViewModel` (sectionTitle Today/Yesterday) та FX провайдера (`FrankfurterRateProviderTests`) з мокнутим `URLSession`.
+- Додано `MockURLProtocol` для тестів URLSession.
+
+### Build/test status (latest-32)
+- `xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator,name=iPhone 15' test`
+  - `CoreSimulatorService connection became invalid` / sandbox restrictions; тести не стартували.
+
+## HistoryUseCase DI fix (latest-33)
+- HistoryViewModel більше не створює HistoryUseCase() у default init (це викликало Call to main actor-isolated initializer), тепер use case інжектиться ззовні.
+- Оновлено HistoryView preview і HistoryViewModelTests під новий init.
+
+### Build/test status (latest-33)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.

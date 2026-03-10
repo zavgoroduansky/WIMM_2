@@ -1,24 +1,9 @@
 import Foundation
-import SwiftData
 import Combine
 
 @MainActor
 final class NewTransactionViewModel: ObservableObject {
-    enum TransactionMode: String, CaseIterable, Identifiable {
-        case expense
-        case income
-        case transfer
-
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .expense: return "Expense"
-            case .income: return "Income"
-            case .transfer: return "Transfer"
-            }
-        }
-    }
+    typealias TransactionMode = NewTransactionUseCase.TransactionMode
 
     @Published var mode: TransactionMode
     @Published var amount = ""
@@ -39,7 +24,7 @@ final class NewTransactionViewModel: ObservableObject {
 
     private let preselectedAccountID: UUID?
     private let preselectedCategoryID: UUID?
-    private let transactionService: TransactionServicing
+    private let useCase: NewTransactionUseCase
 
     private var defaultCurrency: CurrencyCode = .eur
 
@@ -47,30 +32,20 @@ final class NewTransactionViewModel: ObservableObject {
         defaultMode: TransactionMode = .expense,
         preselectedAccountID: UUID? = nil,
         preselectedCategoryID: UUID? = nil,
-        transactionService: TransactionServicing
+        repository: FinanceRepositorying
     ) {
         self.mode = defaultMode
         self.preselectedAccountID = preselectedAccountID
         self.preselectedCategoryID = preselectedCategoryID
-        self.transactionService = transactionService
+        self.useCase = NewTransactionUseCase(repository: repository)
     }
 
     var orderedAccounts: [Account] {
         var result: [Account] = []
-        let sortedGroups = accountGroups.sorted { lhs, rhs in
-            if lhs.sortOrder == rhs.sortOrder {
-                return lhs.name < rhs.name
-            }
-            return lhs.sortOrder < rhs.sortOrder
-        }
+        let sortedGroups = accountGroups.sortedByOrderThenName()
 
         for group in sortedGroups {
-            let groupAccounts = group.accounts.sorted { lhs, rhs in
-                if lhs.sortOrder == rhs.sortOrder {
-                    return lhs.name < rhs.name
-                }
-                return lhs.sortOrder < rhs.sortOrder
-            }
+            let groupAccounts = group.accounts.sortedByOrderThenName()
             result.append(contentsOf: groupAccounts)
         }
         return result
@@ -96,7 +71,7 @@ final class NewTransactionViewModel: ObservableObject {
         let kind: CategoryKind = mode == .income ? .income : .expense
         return categories
             .filter { $0.kind == kind }
-            .sorted { $0.name < $1.name }
+            .sortedByName()
     }
 
     var usesManualAmountTo: Bool {
@@ -140,9 +115,10 @@ final class NewTransactionViewModel: ObservableObject {
         applyDefaultsAndSync()
     }
 
-    func loadData(defaultCurrency: CurrencyCode, using repository: FinanceRepositorying) {
-        let groups = (try? repository.fetchAccountGroups()) ?? []
-        let categories = (try? repository.fetchCategories()) ?? []
+    func loadData(defaultCurrency: CurrencyCode) {
+        let data = useCase.loadData()
+        let groups = data.groups
+        let categories = data.categories
         updateData(accountGroups: groups, categories: categories, defaultCurrency: defaultCurrency)
     }
 
@@ -169,131 +145,24 @@ final class NewTransactionViewModel: ObservableObject {
     }
 
     @discardableResult
-    func save(in modelContext: ModelContext) -> Bool {
+    func save() -> Bool {
         do {
-            switch mode {
-            case .income:
-                guard let amountMinor = Money.minor(fromInput: amount),
-                      let account = selectedAccount else {
-                    throw TransactionServiceError.invalidAmount
-                }
-
-                try transactionService.createIncome(
-                    amountMinor: amountMinor,
-                    account: account,
-                    currency: transactionCurrency,
-                    category: selectedCategory,
-                    date: date,
-                    note: note.nilIfEmptyTrimmed,
-                    in: modelContext
-                )
-            case .expense:
-                guard let amountMinor = Money.minor(fromInput: amount),
-                      let account = selectedAccount else {
-                    throw TransactionServiceError.invalidAmount
-                }
-
-                try transactionService.createExpense(
-                    amountMinor: amountMinor,
-                    account: account,
-                    currency: transactionCurrency,
-                    category: selectedCategory,
-                    date: date,
-                    note: note.nilIfEmptyTrimmed,
-                    in: modelContext
-                )
-            case .transfer:
-                guard let fromAmountMinor = Money.minor(fromInput: amount),
-                      let fromAccount,
-                      let toAccount else {
-                    throw TransactionServiceError.invalidAmount
-                }
-
-                let toAmountMinor: Int64?
-                if usesManualAmountTo {
-                    toAmountMinor = Money.minor(fromInput: amountTo)
-                } else {
-                    toAmountMinor = nil
-                }
-
-                try transactionService.createTransfer(
-                    fromAccount: fromAccount,
-                    toAccount: toAccount,
-                    fromCurrency: transferFromCurrency,
-                    toCurrency: transferToCurrency,
-                    amountFromMinor: fromAmountMinor,
-                    amountToMinor: toAmountMinor,
-                    date: date,
-                    note: note.nilIfEmptyTrimmed,
-                    in: modelContext
-                )
-            }
-
-            errorText = nil
-            return true
-        } catch {
-            errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            return false
-        }
-    }
-
-    @discardableResult
-    func save(using repository: FinanceRepositorying) -> Bool {
-        do {
-            switch mode {
-            case .income:
-                guard let amountMinor = Money.minor(fromInput: amount),
-                      let account = selectedAccount else {
-                    throw TransactionServiceError.invalidAmount
-                }
-
-                try repository.createIncome(
-                    amountMinor: amountMinor,
-                    account: account,
-                    currency: transactionCurrency,
-                    category: selectedCategory,
-                    date: date,
-                    note: note.nilIfEmptyTrimmed
-                )
-            case .expense:
-                guard let amountMinor = Money.minor(fromInput: amount),
-                      let account = selectedAccount else {
-                    throw TransactionServiceError.invalidAmount
-                }
-
-                try repository.createExpense(
-                    amountMinor: amountMinor,
-                    account: account,
-                    currency: transactionCurrency,
-                    category: selectedCategory,
-                    date: date,
-                    note: note.nilIfEmptyTrimmed
-                )
-            case .transfer:
-                guard let fromAmountMinor = Money.minor(fromInput: amount),
-                      let fromAccount,
-                      let toAccount else {
-                    throw TransactionServiceError.invalidAmount
-                }
-
-                let toAmountMinor: Int64?
-                if usesManualAmountTo {
-                    toAmountMinor = Money.minor(fromInput: amountTo)
-                } else {
-                    toAmountMinor = nil
-                }
-
-                try repository.createTransfer(
-                    fromAccount: fromAccount,
-                    toAccount: toAccount,
-                    fromCurrency: transferFromCurrency,
-                    toCurrency: transferToCurrency,
-                    amountFromMinor: fromAmountMinor,
-                    amountToMinor: toAmountMinor,
-                    date: date,
-                    note: note.nilIfEmptyTrimmed
-                )
-            }
+            let input = NewTransactionUseCase.Input(
+                mode: mode,
+                amount: amount,
+                amountTo: amountTo,
+                selectedAccount: selectedAccount,
+                selectedCategory: selectedCategory,
+                fromAccount: fromAccount,
+                toAccount: toAccount,
+                transactionCurrency: transactionCurrency,
+                transferFromCurrency: transferFromCurrency,
+                transferToCurrency: transferToCurrency,
+                date: date,
+                note: note,
+                usesManualAmountTo: usesManualAmountTo
+            )
+            try useCase.save(input: input)
 
             errorText = nil
             return true
@@ -379,11 +248,5 @@ final class NewTransactionViewModel: ObservableObject {
             transferToCurrency = defaultCurrency
         }
     }
-}
 
-private extension String {
-    var nilIfEmptyTrimmed: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
 }

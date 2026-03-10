@@ -15,9 +15,9 @@ struct ManageAccountsViewModelTests {
         context.insert(g1)
         context.insert(g2)
 
-        let vm = ManageAccountsViewModel()
+        let vm = ManageAccountsViewModel(repository: repository)
 
-        vm.moveGroups(from: IndexSet(integer: 0), to: 2, current: [g1, g2], using: repository)
+        vm.moveGroups(from: IndexSet(integer: 0), to: 2, current: [g1, g2])
 
         #expect(g2.sortOrder == 0)
         #expect(g1.sortOrder == 1)
@@ -33,8 +33,8 @@ struct ManageAccountsViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [], transactions: [tx])
 
-        let vm = ManageAccountsViewModel()
-        vm.load(using: repo)
+        let vm = ManageAccountsViewModel(repository: repo)
+        vm.load()
 
         #expect(!vm.canDeleteAccount(account))
         #expect(vm.deleteAccountBlockedReason(account) != nil)
@@ -51,8 +51,8 @@ struct ManageAccountsViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [groupA, groupB], categories: [], transactions: [tx])
 
-        let vm = ManageAccountsViewModel()
-        vm.load(using: repo)
+        let vm = ManageAccountsViewModel(repository: repo)
+        vm.load()
 
         vm.updateAccount(
             account,
@@ -60,8 +60,7 @@ struct ManageAccountsViewModelTests {
             iconName: "star",
             primaryCurrency: .usd,
             enabledCurrencies: [.usd],
-            accountGroup: groupB,
-            using: repo
+            accountGroup: groupB
         )
 
         #expect(account.name == "New Name")
@@ -80,8 +79,8 @@ struct ManageAccountsViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [groupA, groupB], categories: [], transactions: [])
 
-        let vm = ManageAccountsViewModel()
-        vm.load(using: repo)
+        let vm = ManageAccountsViewModel(repository: repo)
+        vm.load()
 
         vm.updateAccount(
             account,
@@ -89,8 +88,7 @@ struct ManageAccountsViewModelTests {
             iconName: "star",
             primaryCurrency: .usd,
             enabledCurrencies: [.usd],
-            accountGroup: groupB,
-            using: repo
+            accountGroup: groupB
         )
 
         #expect(account.name == "New Name")

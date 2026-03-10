@@ -31,11 +31,14 @@ struct IncomeExpenseFieldsView: View {
 }
 
 #Preview {
+    let context = PreviewSupport.makeContext()
+    let repository = PreviewSupport.makeRepository(context: context)
     let viewModel = NewTransactionViewModel(
         defaultMode: .expense,
         preselectedAccountID: nil,
         preselectedCategoryID: nil,
-        transactionService: TransactionService()
+        repository: repository
     )
+    viewModel.loadData(defaultCurrency: .eur)
     return IncomeExpenseFieldsView(viewModel: viewModel)
 }

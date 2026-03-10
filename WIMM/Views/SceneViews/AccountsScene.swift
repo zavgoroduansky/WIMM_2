@@ -2,17 +2,16 @@ import SwiftUI
 import SwiftData
 
 struct AccountsScene: View {
-    let modelContext: ModelContext
     let dependencies: AppDependencies
 
-    @StateObject private var viewModel: AccountsViewModel
+    @ObservedObject private var viewModel: AccountsViewModel
 
-    init(modelContext: ModelContext, dependencies: AppDependencies) {
-        self.modelContext = modelContext
+    init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _viewModel = StateObject(
-            wrappedValue: dependencies.makeAccountsViewModel(modelContext: modelContext)
-        )
+        guard let viewModel = dependencies.accountsViewModel else {
+            fatalError("AppDependencies not configured.")
+        }
+        _viewModel = ObservedObject(wrappedValue: viewModel)
     }
 
     var body: some View {
@@ -21,7 +20,6 @@ struct AccountsScene: View {
             makeBalanceService: { dependencies.makeAccountGroupBalanceService() },
             makeNewTransactionView: { mode, preselectedAccountID, preselectedCategoryID in
                 AnyView(NewTransactionScene(
-                    modelContext: modelContext,
                     dependencies: dependencies,
                     defaultMode: mode,
                     preselectedAccountID: preselectedAccountID,
@@ -35,5 +33,6 @@ struct AccountsScene: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let dependencies = PreviewSupport.makeDependencies()
-    return AccountsScene(modelContext: context, dependencies: dependencies)
+    dependencies.configure(modelContext: context)
+    return AccountsScene(dependencies: dependencies)
 }

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ManageAccountsView: View {
     @ObservedObject var viewModel: ManageAccountsViewModel
-    let makeRepository: () -> FinanceRepositorying
     let makeAddAccountView: () -> AnyView
 
     @State private var showAdd = false
@@ -45,8 +44,7 @@ struct ManageAccountsView: View {
                     iconName: payload.iconName,
                     primaryCurrency: payload.primaryCurrency,
                     enabledCurrencies: Array(payload.enabledCurrencies),
-                    accountGroup: targetGroup,
-                    using: makeRepository()
+                    accountGroup: targetGroup
                 )
                 load()
             }
@@ -55,7 +53,7 @@ struct ManageAccountsView: View {
             RenameEntityView(
                 title: "Rename Account Group",
                 onSave: { newName in
-                    viewModel.renameGroup(group, to: newName, using: makeRepository())
+                    viewModel.renameGroup(group, to: newName)
                     load()
                 },
                 viewModel: RenameEntityViewModel(initialName: group.name)
@@ -86,7 +84,7 @@ struct ManageAccountsView: View {
                 }
                 .swipeActions(edge: .trailing) {
                     Button("Delete", role: .destructive) {
-                        viewModel.deleteGroup(group, using: makeRepository())
+                        viewModel.deleteGroup(group)
                         load()
                     }
                 }
@@ -98,7 +96,7 @@ struct ManageAccountsView: View {
                 }
             }
             .onMove { source, destination in
-                viewModel.moveGroups(from: source, to: destination, current: viewModel.accountGroups, using: makeRepository())
+                viewModel.moveGroups(from: source, to: destination, current: viewModel.accountGroups)
                 load()
             }
         }
@@ -117,7 +115,7 @@ struct ManageAccountsView: View {
                             if let reason = viewModel.deleteAccountBlockedReason(account) {
                                 deleteAlertMessage = reason
                             } else {
-                                viewModel.deleteAccount(account, using: makeRepository())
+                                viewModel.deleteAccount(account)
                                 load()
                             }
                         }
@@ -130,7 +128,7 @@ struct ManageAccountsView: View {
                     }
                 }
                 .onMove { source, destination in
-                    viewModel.moveAccounts(in: group, source: source, destination: destination, using: makeRepository())
+                    viewModel.moveAccounts(in: group, source: source, destination: destination)
                     load()
                 }
             }
@@ -138,20 +136,19 @@ struct ManageAccountsView: View {
     }
 
     private func load() {
-        viewModel.load(using: makeRepository())
+        viewModel.load()
     }
 }
 
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = ManageAccountsViewModel()
-    viewModel.load(using: repository)
+    let viewModel = ManageAccountsViewModel(repository: repository)
+    viewModel.load()
 
     return NavigationStack {
         ManageAccountsView(
             viewModel: viewModel,
-            makeRepository: { repository },
             makeAddAccountView: { AnyView(EmptyView()) }
         )
     }

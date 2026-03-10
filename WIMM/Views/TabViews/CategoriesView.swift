@@ -1,9 +1,6 @@
 import SwiftUI
-import SwiftData
-
 struct CategoriesView: View {
     @ObservedObject var viewModel: CategoriesViewModel
-    let makeRepository: () -> FinanceRepositorying
     let makeNewTransactionView: (_ defaultMode: NewTransactionViewModel.TransactionMode, _ preselectedAccountID: UUID?, _ preselectedCategoryID: UUID?) -> AnyView
 
     var body: some View {
@@ -47,19 +44,18 @@ struct CategoriesView: View {
     }
 
     private func load() {
-        viewModel.load(using: makeRepository())
+        viewModel.load()
     }
 }
 
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = CategoriesViewModel()
-    viewModel.load(using: repository)
+    let viewModel = CategoriesViewModel(repository: repository)
+    viewModel.load()
 
     return CategoriesView(
         viewModel: viewModel,
-        makeRepository: { repository },
         makeNewTransactionView: { _, _, _ in AnyView(EmptyView()) }
     )
 }
@@ -67,12 +63,11 @@ struct CategoriesView: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = CategoriesViewModel()
-    viewModel.load(using: repository)
+    let viewModel = CategoriesViewModel(repository: repository)
+    viewModel.load()
 
     return CategoriesView(
         viewModel: viewModel,
-        makeRepository: { repository },
         makeNewTransactionView: { _, _, _ in AnyView(EmptyView()) }
     )
 }

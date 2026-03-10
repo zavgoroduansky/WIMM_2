@@ -6,31 +6,40 @@ struct ContentView: View {
     @StateObject private var dependencies = AppDependencies()
 
     var body: some View {
-        TabView {
-            AccountsScene(modelContext: modelContext, dependencies: dependencies)
-                .tabItem {
-                    Label("Accounts", systemImage: "wallet.pass")
-                }
+        Group {
+            if dependencies.isConfigured {
+                TabView {
+                    AccountsScene(dependencies: dependencies)
+                        .tabItem {
+                            Label("Accounts", systemImage: "wallet.pass")
+                        }
 
-            CategoriesScene(modelContext: modelContext, dependencies: dependencies)
-                .tabItem {
-                    Label("Categories", systemImage: "list.bullet")
-                }
+                    CategoriesScene(dependencies: dependencies)
+                        .tabItem {
+                            Label("Categories", systemImage: "list.bullet")
+                        }
 
-            HistoryScene(modelContext: modelContext, dependencies: dependencies)
-                .tabItem {
-                    Label("History", systemImage: "clock.arrow.circlepath")
-                }
+                    HistoryScene(dependencies: dependencies)
+                        .tabItem {
+                            Label("History", systemImage: "clock.arrow.circlepath")
+                        }
 
-            ReportsScene(modelContext: modelContext, dependencies: dependencies)
-                .tabItem {
-                    Label("Reports", systemImage: "chart.bar")
-                }
+                    ReportsScene(dependencies: dependencies)
+                        .tabItem {
+                            Label("Reports", systemImage: "chart.bar")
+                        }
 
-            SettingsScene(modelContext: modelContext, dependencies: dependencies)
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape")
+                    SettingsScene(dependencies: dependencies)
+                        .tabItem {
+                            Label("Settings", systemImage: "gearshape")
+                        }
                 }
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            dependencies.configure(modelContext: modelContext)
         }
     }
 }
