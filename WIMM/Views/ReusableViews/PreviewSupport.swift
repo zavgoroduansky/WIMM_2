@@ -22,7 +22,7 @@ enum PreviewSupport {
     }
 
     static func makeRepository(context: ModelContext) -> FinanceRepositorying {
-        SwiftDataFinanceRepository(modelContext: context)
+        SwiftDataFinanceRepository(modelContext: context, transactionService: TransactionService())
     }
 
     static func makeBalanceService() -> AccountGroupBalanceServicing {

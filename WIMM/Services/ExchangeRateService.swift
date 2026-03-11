@@ -69,9 +69,9 @@ struct FrankfurterRateProvider: ExchangeRateProvider {
     private let calendar: Calendar
 
     init(
-        session: URLSession = .shared,
-        cache: ExchangeRateCache = ExchangeRateCache(),
-        calendar: Calendar = .current
+        session: URLSession,
+        cache: ExchangeRateCache,
+        calendar: Calendar
     ) {
         self.session = session
         self.cache = cache

@@ -18,13 +18,30 @@ final class AppDependencies: ObservableObject {
     func configure(modelContext: ModelContext) {
         guard !isConfigured else { return }
 
-        let repo = SwiftDataFinanceRepository(modelContext: modelContext)
+        let transactionService = TransactionService()
+        let repo = SwiftDataFinanceRepository(modelContext: modelContext, transactionService: transactionService)
         repository = repo
 
         accountsViewModel = AccountsViewModel(repository: repo)
         categoriesViewModel = CategoriesViewModel(repository: repo)
-        historyViewModel = HistoryViewModel(repository: repo, useCase: HistoryUseCase())
-        reportsViewModel = ReportsViewModel(rateProvider: FrankfurterRateProvider(), repository: repo)
+        let calendar = Calendar.current
+        let historyFormatter = DateFormatterFactory.historySectionTitle()
+        let historyUseCase = HistoryUseCase(calendar: calendar, sectionTitleFormatter: historyFormatter)
+        historyViewModel = HistoryViewModel(repository: repo, useCase: historyUseCase)
+
+        let exchangeCache = ExchangeRateCache()
+        let rateProvider = FrankfurterRateProvider(
+            session: .shared,
+            cache: exchangeCache,
+            calendar: calendar
+        )
+        let reportsUseCase = ReportsUseCase(rateProvider: rateProvider, calendar: calendar)
+        let reportsMonthFormatter = DateFormatterFactory.reportsMonthLabel()
+        reportsViewModel = ReportsViewModel(
+            repository: repo,
+            useCase: reportsUseCase,
+            monthLabelFormatter: reportsMonthFormatter
+        )
         settingsViewModel = SettingsViewModel()
         manageAccountsViewModel = ManageAccountsViewModel(repository: repo)
         manageCategoriesViewModel = ManageCategoriesViewModel(repository: repo)
@@ -34,7 +51,13 @@ final class AppDependencies: ObservableObject {
     }
 
     func makeAccountGroupBalanceService() -> AccountGroupBalanceServicing {
-        AccountGroupBalanceService(rateProvider: FrankfurterRateProvider())
+        let calendar = Calendar.current
+        let rateProvider = FrankfurterRateProvider(
+            session: .shared,
+            cache: ExchangeRateCache(),
+            calendar: calendar
+        )
+        return AccountGroupBalanceService(rateProvider: rateProvider)
     }
 
     func makeAddCategoryViewModel(initialKind: CategoryKind) -> AddCategoryViewModel {

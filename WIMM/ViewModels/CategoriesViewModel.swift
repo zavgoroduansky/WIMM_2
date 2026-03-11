@@ -22,7 +22,11 @@ final class CategoriesViewModel: ObservableObject {
     }
 
     func expenseCategories(from categories: [Category]) -> [Category] {
-        categories.filter { $0.kind == .expense }
+        categories
+            .filter { $0.kind == .expense }
+            .sorted {
+                totalExpenseMinor(for: $0) > totalExpenseMinor(for: $1)
+            }
     }
 
     func expenseForCurrentMonth(_ category: Category, now: Date = .now, calendar: Calendar = .current) -> String {
@@ -40,6 +44,18 @@ final class CategoriesViewModel: ObservableObject {
         }
 
         return parts.isEmpty ? "0" : parts.joined(separator: " · ")
+    }
+
+    func totalExpenseMinor(
+        for category: Category,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> Int64 {
+        category.transactions
+            .filter { tx in
+                tx.kind == .expense && tx.transferGroupId == nil && calendar.isDate(tx.date, equalTo: now, toGranularity: .month)
+            }
+            .reduce(Int64.zero) { $0 + $1.amountMinor }
     }
 
     func didTapCategory(_ category: Category) {

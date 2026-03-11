@@ -18,7 +18,13 @@ struct ReportsViewModelTests {
 
         let tx = Transaction(kind: .expense, amountMinor: 1000, currency: .eur, date: txDate, account: account, category: category)
 
-        let viewModel = ReportsViewModel(rateProvider: MockRateProvider(), repository: MockFinanceRepository())
+        let useCase = ReportsUseCase(rateProvider: MockRateProvider(), calendar: calendar)
+        let formatter = DateFormatterFactory.reportsMonthLabel()
+        let viewModel = ReportsViewModel(
+            repository: MockFinanceRepository(),
+            useCase: useCase,
+            monthLabelFormatter: formatter
+        )
         let options = viewModel.monthOptions(from: [tx], calendar: calendar)
 
         let txMonth = calendar.dateInterval(of: .month, for: txDate)?.start
@@ -67,7 +73,13 @@ struct ReportsViewModelTests {
         )
 
         let rateProvider = MockRateProvider(rates: ["uah_eur": Decimal(string: "0.02") ?? 0])
-        let viewModel = ReportsViewModel(rateProvider: rateProvider, repository: MockFinanceRepository())
+        let useCase = ReportsUseCase(rateProvider: rateProvider, calendar: calendar)
+        let formatter = DateFormatterFactory.reportsMonthLabel()
+        let viewModel = ReportsViewModel(
+            repository: MockFinanceRepository(),
+            useCase: useCase,
+            monthLabelFormatter: formatter
+        )
         viewModel.selectedMonthStart = selectedMonthStart
 
         await viewModel.loadReport(
@@ -103,7 +115,13 @@ struct ReportsViewModelTests {
         )
 
         let rateProvider = MockRateProvider(rates: [:])
-        let viewModel = ReportsViewModel(rateProvider: rateProvider, repository: MockFinanceRepository())
+        let useCase = ReportsUseCase(rateProvider: rateProvider, calendar: calendar)
+        let formatter = DateFormatterFactory.reportsMonthLabel()
+        let viewModel = ReportsViewModel(
+            repository: MockFinanceRepository(),
+            useCase: useCase,
+            monthLabelFormatter: formatter
+        )
         viewModel.selectedMonthStart = selectedMonthStart
 
         await viewModel.loadReport(
@@ -136,7 +154,13 @@ struct ReportsViewModelTests {
             category: category
         )
 
-        let viewModel = ReportsViewModel(rateProvider: MockRateProvider(), repository: MockFinanceRepository())
+        let useCase = ReportsUseCase(rateProvider: MockRateProvider(), calendar: calendar)
+        let formatter = DateFormatterFactory.reportsMonthLabel()
+        let viewModel = ReportsViewModel(
+            repository: MockFinanceRepository(),
+            useCase: useCase,
+            monthLabelFormatter: formatter
+        )
         viewModel.selectedMonthStart = selectedMonthStart
 
         await viewModel.loadReport(
@@ -150,6 +174,7 @@ struct ReportsViewModelTests {
 
     @Test
     func taskKeyChangesWhenTransactionDetailsChange() {
+        let calendar = Calendar.current
         let group = TestDataFactory.makeAccountGroup(name: "Main")
         let account = TestDataFactory.makeAccount(name: "Wallet", accountGroup: group)
         let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
@@ -171,7 +196,13 @@ struct ReportsViewModelTests {
             category: category
         )
 
-        let viewModel = ReportsViewModel(rateProvider: MockRateProvider(), repository: MockFinanceRepository())
+        let useCase = ReportsUseCase(rateProvider: MockRateProvider(), calendar: calendar)
+        let formatter = DateFormatterFactory.reportsMonthLabel()
+        let viewModel = ReportsViewModel(
+            repository: MockFinanceRepository(),
+            useCase: useCase,
+            monthLabelFormatter: formatter
+        )
         let keyA = viewModel.taskKey(transactions: [txA], defaultCurrency: .eur)
         let keyB = viewModel.taskKey(transactions: [txB], defaultCurrency: .eur)
 

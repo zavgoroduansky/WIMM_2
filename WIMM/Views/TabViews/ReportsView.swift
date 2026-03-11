@@ -56,7 +56,14 @@ struct ReportsView: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = ReportsViewModel(rateProvider: PreviewRateProvider(), repository: repository)
+    let calendar = Calendar.current
+    let useCase = ReportsUseCase(rateProvider: PreviewRateProvider(), calendar: calendar)
+    let formatter = DateFormatterFactory.reportsMonthLabel()
+    let viewModel = ReportsViewModel(
+        repository: repository,
+        useCase: useCase,
+        monthLabelFormatter: formatter
+    )
     viewModel.loadTransactions()
 
     return ReportsView(

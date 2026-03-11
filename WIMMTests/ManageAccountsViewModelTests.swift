@@ -8,7 +8,10 @@ struct ManageAccountsViewModelTests {
     @Test
     func moveGroupsUpdatesSortOrder() throws {
         let context = try TestDataFactory.makeInMemoryContext()
-        let repository = SwiftDataFinanceRepository(modelContext: context)
+        let repository = SwiftDataFinanceRepository(
+            modelContext: context,
+            transactionService: TransactionService()
+        )
         let g1 = TestDataFactory.makeAccountGroup(name: "A", sortOrder: 0)
         let g2 = TestDataFactory.makeAccountGroup(name: "B", sortOrder: 1)
 

@@ -118,6 +118,91 @@ struct TransactionServiceTests {
     }
 
     @Test
+    func createIncomeRejectsInvalidAmount() throws {
+        let context = try TestDataFactory.makeInMemoryContext()
+        let group = TestDataFactory.makeAccountGroup()
+        let account = TestDataFactory.makeAccount(accountGroup: group)
+        context.insert(group)
+        context.insert(account)
+
+        let service = TransactionService()
+        var caught: TransactionServiceError?
+        do {
+            try service.createIncome(
+                amountMinor: 0,
+                account: account,
+                currency: .eur,
+                category: nil,
+                date: .now,
+                note: nil,
+                in: context
+            )
+        } catch let error as TransactionServiceError {
+            caught = error
+        }
+
+        #expect(caught == .invalidAmount)
+    }
+
+    @Test
+    func createExpenseRejectsUnsupportedCurrency() throws {
+        let context = try TestDataFactory.makeInMemoryContext()
+        let group = TestDataFactory.makeAccountGroup()
+        let account = TestDataFactory.makeAccount(primaryCurrency: .eur, enabledCurrencies: [.eur], accountGroup: group)
+        context.insert(group)
+        context.insert(account)
+
+        let service = TransactionService()
+        var caught: TransactionServiceError?
+        do {
+            try service.createExpense(
+                amountMinor: 1000,
+                account: account,
+                currency: .usd,
+                category: nil,
+                date: .now,
+                note: nil,
+                in: context
+            )
+        } catch let error as TransactionServiceError {
+            caught = error
+        }
+
+        #expect(caught == .currencyNotEnabledForAccount)
+    }
+
+    @Test
+    func createTransferRejectsInvalidAmount() throws {
+        let context = try TestDataFactory.makeInMemoryContext()
+        let group = TestDataFactory.makeAccountGroup()
+        let from = TestDataFactory.makeAccount(enabledCurrencies: [.eur], accountGroup: group)
+        let to = TestDataFactory.makeAccount(enabledCurrencies: [.eur], accountGroup: group)
+        context.insert(group)
+        context.insert(from)
+        context.insert(to)
+
+        let service = TransactionService()
+        var caught: TransactionServiceError?
+        do {
+            try service.createTransfer(
+                fromAccount: from,
+                toAccount: to,
+                fromCurrency: .eur,
+                toCurrency: .eur,
+                amountFromMinor: 0,
+                amountToMinor: nil,
+                date: .now,
+                note: nil,
+                in: context
+            )
+        } catch let error as TransactionServiceError {
+            caught = error
+        }
+
+        #expect(caught == .invalidAmount)
+    }
+
+    @Test
     func validateTransactionRejectsUnsupportedCurrency() throws {
         let group = TestDataFactory.makeAccountGroup()
         let account = TestDataFactory.makeAccount(primaryCurrency: .eur, enabledCurrencies: [.eur], accountGroup: group)

@@ -27,15 +27,18 @@ final class ReportsViewModel: ObservableObject {
 
     private let repository: FinanceRepositorying
     private let useCase: ReportsUseCase
+    private let monthLabelFormatter: DateFormatting
 
     init(
-        rateProvider: ExchangeRateProvider,
         repository: FinanceRepositorying,
-        calendar: Calendar = .current
+        useCase: ReportsUseCase,
+        selectedMonthStart: Date? = nil,
+        monthLabelFormatter: DateFormatting
     ) {
         self.repository = repository
-        self.useCase = ReportsUseCase(rateProvider: rateProvider, calendar: calendar)
-        self.selectedMonthStart = calendar.dateInterval(of: .month, for: .now)?.start ?? .now
+        self.useCase = useCase
+        self.selectedMonthStart = selectedMonthStart ?? useCase.defaultSelectedMonthStart()
+        self.monthLabelFormatter = monthLabelFormatter
     }
 
     func monthOptions(from transactions: [Transaction], calendar: Calendar = .current) -> [Date] {
@@ -58,10 +61,7 @@ final class ReportsViewModel: ObservableObject {
     }
 
     func monthLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        formatter.dateFormat = "LLLL yyyy"
-        return formatter.string(from: date)
+        monthLabelFormatter.string(from: date)
     }
 
     func taskKey(transactions: [Transaction], defaultCurrency: CurrencyCode) -> String {

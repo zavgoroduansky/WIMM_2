@@ -22,9 +22,13 @@ struct ReportsUseCase {
     private let rateProvider: ExchangeRateProvider
     private let calendar: Calendar
 
-    init(rateProvider: ExchangeRateProvider, calendar: Calendar = .current) {
+    init(rateProvider: ExchangeRateProvider, calendar: Calendar) {
         self.rateProvider = rateProvider
         self.calendar = calendar
+    }
+
+    func defaultSelectedMonthStart(now: Date = .now) -> Date {
+        calendar.dateInterval(of: .month, for: now)?.start ?? now
     }
 
     func monthOptions(from transactions: [Transaction]) -> [Date] {
