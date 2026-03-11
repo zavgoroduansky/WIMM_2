@@ -66,10 +66,6 @@ final class SwiftDataFinanceRepository: FinanceRepositorying {
         self.transactionService = transactionService
     }
 
-    convenience init(modelContext: ModelContext) {
-        self.init(modelContext: modelContext, transactionService: TransactionService())
-    }
-
     func fetchAccountGroups() throws -> [AccountGroup] {
         let descriptor = FetchDescriptor<AccountGroup>(
             sortBy: [SortDescriptor(\AccountGroup.sortOrder), SortDescriptor(\AccountGroup.name)]

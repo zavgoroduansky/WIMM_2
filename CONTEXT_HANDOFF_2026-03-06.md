@@ -651,3 +651,84 @@
 ### Build/test status (latest-33)
 - xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
   - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## ReportsUseCase DI fix (latest-34)
+- ReportsViewModel більше не створює ReportsUseCase в init, use case інжектиться ззовні.
+- Додано ReportsUseCase.defaultSelectedMonthStart() для дефолтного місяця.
+- Оновлено AppDependencies, ReportsView preview та ReportsViewModelTests під новий init.
+
+### Build/test status (latest-34)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## DI cleanup (latest-35)
+- SwiftDataFinanceRepository більше не створює TransactionService всередині, тепер DI виконується у AppDependencies/Preview/Test коді.
+- FrankfurterRateProvider більше не має default параметрів; session/cache/calendar інжектяться зовні.
+- HistoryUseCase і ReportsUseCase більше не створюють DateFormatter усередині; форматери інжектяться через DateFormatting.
+- ReportsViewModel тепер приймає monthLabelFormatter через init.
+- Додано DateFormatting/DateFormatterFactory для стандартних форматерів.
+- Оновлено всі previews та тести під нові init сигнатури.
+
+### Build/test status (latest-35)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## Categories sorting + amount color (latest-36)
+- Expense categories у CategoriesView тепер сортуються за сумою витрат поточного місяця (desc).
+- CategorySummaryRowView більше не фарбує суму червоним, використовується стандартний колір.
+- Додано unit‑тест для сортування за витратами.
+
+### Build/test status (latest-36)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## Category list dot (latest-37)
+- CategorySummaryRowView тепер показує кольорову крапку з colorHex перед назвою категорії в CategoriesView.
+- Оновлено preview та виклики CategorySummaryRowView.
+
+### Build/test status (latest-37)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## UseCase coverage (latest-38)
+- Додані unit‑тести для NewTransactionUseCase, ReportsUseCase, HistoryUseCase.
+- Розширені TransactionServiceTests: invalidAmount і currencyNotEnabledForAccount для createIncome/createExpense/createTransfer.
+
+### Build/test status (latest-38)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## NewTransactionUseCaseTests catch fix (latest-39)
+- Додано загальний catch у NewTransactionUseCaseTests для вичерпності обробки помилок.
+
+### Build/test status (latest-39)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## EditAccountCurrenciesViewModelTests fix (latest-40)
+- Оновлено тест: save(account:using:) -> save(account:), щоб відповідати новому init+repository DI.
+
+### Build/test status (latest-40)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## NewTransactionViewModelTests fix (latest-41)
+- saveTransferUsesRepository тепер використовує той самий MockFinanceRepository, щоб перевірки createTransferCalls/transactions були валідні.
+
+### Build/test status (latest-41)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## NewTransactionViewModelTests scope fix (latest-42)
+- В transferRequiresAmountToWhenCurrenciesDiffer повернуто MockFinanceRepository (repo не був у скоупі).
+
+### Build/test status (latest-42)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## NewTransactionViewModelTests repo fix (latest-43)
+- saveTransferUsesRepository тепер використовує repo у ViewModel, щоб очікування createTransferCalls/transactions були валідні.
+
+### Build/test status (latest-43)
+- xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
+  - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.

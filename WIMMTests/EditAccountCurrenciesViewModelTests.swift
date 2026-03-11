@@ -29,11 +29,11 @@ struct EditAccountCurrenciesViewModelTests {
         )
 
         let repo = MockFinanceRepository()
-        let vm = EditAccountCurrenciesViewModel(repository: MockFinanceRepository())
+        let vm = EditAccountCurrenciesViewModel(repository: repo)
         vm.selected = [.usd]
         vm.primary = .usd
 
-        vm.save(account: account, using: repo)
+        vm.save(account: account)
 
         #expect(account.primaryCurrency == .usd)
         #expect(account.enabledCurrencies.contains(.usd))

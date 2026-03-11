@@ -20,7 +20,10 @@ struct AddAccountViewModelTests {
     @Test
     func saveCreatesAccountInSelectedGroup() throws {
         let context = try TestDataFactory.makeInMemoryContext()
-        let repository = SwiftDataFinanceRepository(modelContext: context)
+        let repository = SwiftDataFinanceRepository(
+            modelContext: context,
+            transactionService: TransactionService()
+        )
         let group = TestDataFactory.makeAccountGroup(name: "Main")
 
         let vm = AddAccountViewModel(repository: repository)

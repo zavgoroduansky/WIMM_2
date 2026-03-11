@@ -25,9 +25,11 @@ struct HistoryDaySection: Identifiable {
 
 struct HistoryUseCase {
     private let calendar: Calendar
+    private let sectionTitleFormatter: DateFormatting
 
-    init(calendar: Calendar = .current) {
+    init(calendar: Calendar, sectionTitleFormatter: DateFormatting) {
         self.calendar = calendar
+        self.sectionTitleFormatter = sectionTitleFormatter
     }
 
     func makeEntries(from transactions: [Transaction]) -> [HistoryEntry] {
@@ -102,9 +104,6 @@ struct HistoryUseCase {
         if calendar.isDateInYesterday(date) {
             return "Yesterday"
         }
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        formatter.dateFormat = "d MMM yyyy"
-        return formatter.string(from: date)
+        return sectionTitleFormatter.string(from: date)
     }
 }

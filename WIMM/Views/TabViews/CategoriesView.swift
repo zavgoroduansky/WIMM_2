@@ -16,7 +16,8 @@ struct CategoriesView: View {
                     ForEach(viewModel.expenseCategories) { category in
                         CategorySummaryRowView(
                             categoryName: category.name,
-                            amountText: viewModel.expenseForCurrentMonth(category)
+                            amountText: viewModel.expenseForCurrentMonth(category),
+                            colorHex: category.colorHex
                         ) {
                             viewModel.didTapCategory(category)
                         }

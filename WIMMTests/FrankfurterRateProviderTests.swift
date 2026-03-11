@@ -12,7 +12,11 @@ struct FrankfurterRateProviderTests {
 
     @Test
     func rateReturnsOneWhenCurrenciesMatch() async throws {
-        let provider = FrankfurterRateProvider(session: makeSession())
+        let provider = FrankfurterRateProvider(
+            session: makeSession(),
+            cache: ExchangeRateCache(defaults: UserDefaults(suiteName: "frankfurter-test-1") ?? .standard),
+            calendar: Calendar.current
+        )
         let rate = try await provider.rate(from: .eur, to: .eur, on: nil)
         #expect(rate == 1)
         MockURLProtocol.requestHandler = nil
@@ -30,7 +34,11 @@ struct FrankfurterRateProviderTests {
             return (response, Data())
         }
 
-        let provider = FrankfurterRateProvider(session: makeSession())
+        let provider = FrankfurterRateProvider(
+            session: makeSession(),
+            cache: ExchangeRateCache(defaults: UserDefaults(suiteName: "frankfurter-test-2") ?? .standard),
+            calendar: Calendar.current
+        )
 
         do {
             _ = try await provider.rate(from: .eur, to: .usd, on: nil)
@@ -56,7 +64,11 @@ struct FrankfurterRateProviderTests {
             return (response, data)
         }
 
-        let provider = FrankfurterRateProvider(session: makeSession())
+        let provider = FrankfurterRateProvider(
+            session: makeSession(),
+            cache: ExchangeRateCache(defaults: UserDefaults(suiteName: "frankfurter-test-3") ?? .standard),
+            calendar: Calendar.current
+        )
 
         do {
             _ = try await provider.rate(from: .eur, to: .usd, on: nil)

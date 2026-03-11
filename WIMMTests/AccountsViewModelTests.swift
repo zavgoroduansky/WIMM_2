@@ -7,7 +7,10 @@ struct AccountsViewModelTests {
     @Test
     func ordersGroupsAndAccountsBySortOrderThenName() throws {
         let context = try TestDataFactory.makeInMemoryContext()
-        let repository = SwiftDataFinanceRepository(modelContext: context)
+        let repository = SwiftDataFinanceRepository(
+            modelContext: context,
+            transactionService: TransactionService()
+        )
         let g1 = TestDataFactory.makeAccountGroup(name: "B", sortOrder: 1)
         let g2 = TestDataFactory.makeAccountGroup(name: "A", sortOrder: 0)
 
@@ -24,7 +27,10 @@ struct AccountsViewModelTests {
     @Test
     func tapAccountOpensTransactionWithPreselectedAccount() throws {
         let context = try TestDataFactory.makeInMemoryContext()
-        let repository = SwiftDataFinanceRepository(modelContext: context)
+        let repository = SwiftDataFinanceRepository(
+            modelContext: context,
+            transactionService: TransactionService()
+        )
         let group = TestDataFactory.makeAccountGroup(name: "Cash")
         let account = TestDataFactory.makeAccount(name: "Wallet", accountGroup: group)
         let vm = AccountsViewModel(repository: repository)
@@ -38,7 +44,10 @@ struct AccountsViewModelTests {
     @Test
     func tapNewClearsPreselectedAccount() throws {
         let context = try TestDataFactory.makeInMemoryContext()
-        let repository = SwiftDataFinanceRepository(modelContext: context)
+        let repository = SwiftDataFinanceRepository(
+            modelContext: context,
+            transactionService: TransactionService()
+        )
         let vm = AccountsViewModel(repository: repository)
         vm.preselectedAccountID = UUID()
 

@@ -32,6 +32,44 @@ struct CategoriesViewModelTests {
     }
 
     @Test
+    func expenseCategoriesSortByMonthlyExpenseDescending() {
+        let now = Date()
+        let group = TestDataFactory.makeAccountGroup()
+        let account = TestDataFactory.makeAccount(accountGroup: group)
+        group.accounts = [account]
+
+        let high = TestDataFactory.makeCategory(name: "High", kind: .expense)
+        let low = TestDataFactory.makeCategory(name: "Low", kind: .expense)
+
+        let highTx = Transaction(
+            kind: .expense,
+            amountMinor: 2_000,
+            currency: .eur,
+            date: now,
+            account: account,
+            category: high
+        )
+        let lowTx = Transaction(
+            kind: .expense,
+            amountMinor: 500,
+            currency: .eur,
+            date: now,
+            account: account,
+            category: low
+        )
+
+        high.transactions = [highTx]
+        low.transactions = [lowTx]
+
+        let vm = CategoriesViewModel(repository: MockFinanceRepository())
+        let sorted = vm.expenseCategories(from: [low, high])
+
+        #expect(sorted.first?.name == "High")
+        #expect(vm.totalExpenseMinor(for: high, now: now) == 2_000)
+        #expect(vm.totalExpenseMinor(for: low, now: now) == 500)
+    }
+
+    @Test
     func tapCategoryOpensTransactionWithPreselectedCategory() {
         let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
         let vm = CategoriesViewModel(repository: MockFinanceRepository())

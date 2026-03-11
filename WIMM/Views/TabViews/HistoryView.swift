@@ -72,7 +72,11 @@ struct HistoryView: View {
 #Preview {
     let context = PreviewSupport.makeContext()
     let repository = PreviewSupport.makeRepository(context: context)
-    let viewModel = HistoryViewModel(repository: repository, useCase: HistoryUseCase())
+    let useCase = HistoryUseCase(
+        calendar: Calendar.current,
+        sectionTitleFormatter: DateFormatterFactory.historySectionTitle()
+    )
+    let viewModel = HistoryViewModel(repository: repository, useCase: useCase)
     viewModel.load()
 
     return HistoryView(

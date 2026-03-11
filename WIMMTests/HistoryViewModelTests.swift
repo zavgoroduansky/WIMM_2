@@ -33,7 +33,11 @@ struct HistoryViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [], transactions: [outflow, inflow])
 
-        let viewModel = HistoryViewModel(repository: repo, useCase: HistoryUseCase())
+        let useCase = HistoryUseCase(
+            calendar: Calendar.current,
+            sectionTitleFormatter: DateFormatterFactory.historySectionTitle()
+        )
+        let viewModel = HistoryViewModel(repository: repo, useCase: useCase)
         viewModel.load()
 
         let transferEntry = viewModel.entries.first { $0.transferGroupID == groupID }
@@ -50,7 +54,11 @@ struct HistoryViewModelTests {
     @Test
     func sectionTitleUsesTodayYesterdayFallbacks() {
         let repo = MockFinanceRepository()
-        let viewModel = HistoryViewModel(repository: repo, useCase: HistoryUseCase())
+        let useCase = HistoryUseCase(
+            calendar: Calendar.current,
+            sectionTitleFormatter: DateFormatterFactory.historySectionTitle()
+        )
+        let viewModel = HistoryViewModel(repository: repo, useCase: useCase)
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
