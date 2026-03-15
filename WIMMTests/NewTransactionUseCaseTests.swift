@@ -73,16 +73,11 @@ struct NewTransactionUseCaseTests {
         )
 
         let useCase = NewTransactionUseCase(repository: repo)
-        var caught: TransactionServiceError?
-        do {
+        let error = #expect(throws: TransactionServiceError.self) {
             try useCase.save(input: input)
-        } catch let error as TransactionServiceError {
-            caught = error
-        } catch {
-            #expect(false, "Unexpected error: \(error)")
         }
 
-        #expect(caught == .invalidAmount)
+        #expect(error == .invalidAmount)
     }
 
     @Test
@@ -109,16 +104,11 @@ struct NewTransactionUseCaseTests {
         )
 
         let useCase = NewTransactionUseCase(repository: repo)
-        var caught: TransactionServiceError?
-        do {
+        let error = #expect(throws: TransactionServiceError.self) {
             try useCase.save(input: input)
-        } catch let error as TransactionServiceError {
-            caught = error
-        } catch {
-            #expect(false, "Unexpected error: \(error)")
         }
 
-        #expect(caught == .invalidAmount)
+        #expect(error == .invalidAmount)
     }
 
     @Test

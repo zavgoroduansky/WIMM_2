@@ -16,6 +16,7 @@ description: Mandatory process for any code changes in this repo, including requ
 - Use dependency injection (DI) for collaborators and services.
 - Maximize separation between layers to improve testability.
 - Keep Views simple and small.
+- Avoid view logic: anything that can be computed in a ViewModel or other layer must be done there, not in the View.
 
 ## After Changes
 

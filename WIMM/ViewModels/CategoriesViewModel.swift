@@ -58,6 +58,29 @@ final class CategoriesViewModel: ObservableObject {
             .reduce(Int64.zero) { $0 + $1.amountMinor }
     }
 
+    func totalExpenseMinorAllCategories(
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> Int64 {
+        expenseCategories(from: categories)
+            .reduce(Int64.zero) { $0 + totalExpenseMinor(for: $1, now: now, calendar: calendar) }
+    }
+
+    func expenseProgressByCategory(
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> [UUID: Double] {
+        let total = totalExpenseMinorAllCategories(now: now, calendar: calendar)
+        guard total > 0 else {
+            return [:]
+        }
+
+        return expenseCategories(from: categories).reduce(into: [UUID: Double]()) { result, category in
+            let categoryTotal = totalExpenseMinor(for: category, now: now, calendar: calendar)
+            result[category.id] = Double(categoryTotal) / Double(total)
+        }
+    }
+
     func didTapCategory(_ category: Category) {
         preselectedCategoryID = category.id
         showNewTransaction = true

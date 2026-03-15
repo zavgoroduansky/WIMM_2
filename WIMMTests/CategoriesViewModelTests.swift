@@ -70,6 +70,36 @@ struct CategoriesViewModelTests {
     }
 
     @Test
+    func expenseProgressUsesMonthlyTotal() {
+        let now = Date()
+        let group = TestDataFactory.makeAccountGroup()
+        let account = TestDataFactory.makeAccount(accountGroup: group)
+        group.accounts = [account]
+
+        let car = TestDataFactory.makeCategory(name: "Car", kind: .expense)
+        let food = TestDataFactory.makeCategory(name: "Food", kind: .expense)
+
+        car.transactions = [
+            Transaction(kind: .expense, amountMinor: 100, currency: .eur, date: now, account: account, category: car)
+        ]
+        food.transactions = [
+            Transaction(kind: .expense, amountMinor: 200, currency: .eur, date: now, account: account, category: food)
+        ]
+
+        let repo = MockFinanceRepository()
+        repo.seed(groups: [], categories: [car, food], transactions: [])
+        let vm = CategoriesViewModel(repository: repo)
+        vm.load()
+
+        let total = vm.totalExpenseMinorAllCategories(now: now)
+        let progressByCategory = vm.expenseProgressByCategory(now: now)
+
+        #expect(total == 300)
+        #expect(abs((progressByCategory[car.id] ?? 0) - (1.0 / 3.0)) < 0.0001)
+        #expect(abs((progressByCategory[food.id] ?? 0) - (2.0 / 3.0)) < 0.0001)
+    }
+
+    @Test
     func tapCategoryOpensTransactionWithPreselectedCategory() {
         let category = TestDataFactory.makeCategory(name: "Food", kind: .expense)
         let vm = CategoriesViewModel(repository: MockFinanceRepository())
