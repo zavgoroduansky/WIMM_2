@@ -732,3 +732,40 @@
 ### Build/test status (latest-43)
 - xcodebuild -project WIMM.xcodeproj -scheme WIMM-UnitTests -destination 'platform=iOS Simulator' test
   - CoreSimulatorService connection became invalid / sandbox restrictions; тести не стартували.
+
+## FrankfurterRateProviderTests warning fix (latest-44)
+- Замінено `#expect(false)` на `#expect(throws: ExchangeRateError.self)` у негативних тестах, щоб прибрати warning від макроса `expect`.
+
+### Build/test status (latest-44)
+- Not run (not requested).
+
+## NewTransactionViewModelTests repo fix (latest-45)
+- `saveTransferUsesRepository` тепер ініціалізує `NewTransactionViewModel` тим самим `repo`, що й перевірки `createTransferCalls/transactions`.
+
+### Build/test status (latest-45)
+- Not run (not requested).
+
+## FrankfurterRateProviderTests serialization fix (latest-46)
+- Додано `@Suite(.serialized)` для `FrankfurterRateProviderTests`, щоб уникнути гонок за `MockURLProtocol.requestHandler` під час паралельних тестів.
+
+### Build/test status (latest-46)
+- Not run (not requested).
+
+## NewTransactionUseCaseTests warning fix (latest-47)
+- У двох тестах використано `#expect(throws: TransactionServiceError.self)` замість `#expect(false, ...)`, щоб прибрати warning і перевірити тип помилки.
+
+### Build/test status (latest-47)
+- Not run (not requested).
+
+## CategoriesView monthly expense scale (latest-48)
+- Додано розрахунок частки витрат по категорії за поточний місяць і відображення зеленої шкали під назвою категорії.
+- Оновлено `CategorySummaryRowView` і додано тест для `expenseProgress`.
+
+### Build/test status (latest-48)
+- Not run (not requested).
+
+## CategoriesView progress calculation fix (latest-49)
+- Перенесено розрахунок прогресу в `CategoriesViewModel` (`expenseProgressByCategory`) та прибрано назву-помилку параметра, що конфліктувала з методом.
+
+### Build/test status (latest-49)
+- Not run (not requested).

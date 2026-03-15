@@ -150,7 +150,7 @@ struct NewTransactionViewModelTests {
         let repo = MockFinanceRepository()
         repo.seed(groups: [group], categories: [], transactions: [])
 
-        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: MockFinanceRepository())
+        let viewModel = NewTransactionViewModel(defaultMode: .transfer, repository: repo)
         viewModel.updateData(accountGroups: [group], categories: [], defaultCurrency: .eur)
         viewModel.mode = .transfer
         viewModel.fromAccountID = from.id

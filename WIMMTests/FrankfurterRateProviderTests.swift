@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import WIMM
 
+@Suite(.serialized)
 @MainActor
 struct FrankfurterRateProviderTests {
     private func makeSession() -> URLSession {
@@ -40,11 +41,8 @@ struct FrankfurterRateProviderTests {
             calendar: Calendar.current
         )
 
-        do {
+        await #expect(throws: ExchangeRateError.self) {
             _ = try await provider.rate(from: .eur, to: .usd, on: nil)
-            #expect(false)
-        } catch {
-            #expect(error is ExchangeRateError)
         }
         MockURLProtocol.requestHandler = nil
     }
@@ -70,11 +68,8 @@ struct FrankfurterRateProviderTests {
             calendar: Calendar.current
         )
 
-        do {
+        await #expect(throws: ExchangeRateError.self) {
             _ = try await provider.rate(from: .eur, to: .usd, on: nil)
-            #expect(false)
-        } catch {
-            #expect(error is ExchangeRateError)
         }
         MockURLProtocol.requestHandler = nil
     }

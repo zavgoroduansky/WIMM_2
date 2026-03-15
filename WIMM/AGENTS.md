@@ -23,4 +23,7 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
   - Avoid deep reference-chasing: prefer opening only files directly linked from `SKILL.md` unless you're blocked.
   - When variants exist (frameworks, providers, domains), pick only the relevant reference file(s) and note that choice.
 - Safety and fallback: If a skill can't be applied cleanly (missing files, unclear instructions), state the issue, pick the next-best approach, and continue.
+
+## Agent behavior
+- Always use the `code-change-guard` skill whenever making code changes in this repo, even if not explicitly requested.
 </INSTRUCTIONS>

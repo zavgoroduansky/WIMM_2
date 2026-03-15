@@ -13,10 +13,12 @@ struct CategoriesView: View {
                         description: Text("Create expense categories in Settings.")
                     )
                 } else {
+                    let progressByCategory = viewModel.expenseProgressByCategory()
                     ForEach(viewModel.expenseCategories) { category in
                         CategorySummaryRowView(
                             categoryName: category.name,
                             amountText: viewModel.expenseForCurrentMonth(category),
+                            progress: progressByCategory[category.id] ?? 0,
                             colorHex: category.colorHex
                         ) {
                             viewModel.didTapCategory(category)
